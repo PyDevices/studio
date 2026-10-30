@@ -28,10 +28,32 @@ Controllers
 -----------
 Each macro of the part's instrument is a CC: macro *i* is CC ``MACRO_CC +
 i`` (102 to 117, controllers MIDI leaves undefined), at the instrument's
-own 0-127 scale. Volume (CC7) and pan (CC10) reach a SoundFont part's
-Volume and Pan macros, and an instrument part's level and pan in the mixer.
-The sustain pedal (CC64) holds notes for every part. Reverb (CC91) and
-chorus (CC93) are master levels, the last channel to send one setting it.
+own 0-127 scale. Volume (CC7) reaches a SoundFont part as CC7, which plays
+it as the square law GM modules use (40 log10 of CC7/127 in dB, as
+Expression), and pan (CC10) its Pan macro; on an instrument part both set
+its level and pan in the mixer.
+The sustain pedal (CC64) holds notes for every part, and Reset All
+Controllers (121) also puts Expression (CC11) back to 127 and the mod wheel
+and channel pressure to 0, as GM's RP-015 asks.
+
+Registered parameters (RPN, CC101 and CC100, then Data Entry on CC6 and
+CC38 or Increment and Decrement on CC96 and CC97) set a part's Pitch Bend
+Sensitivity (RPN 0, two semitones at power-on, up to 24), Channel Fine
+Tuning (RPN 1, a hundred cents either way) and Channel Coarse Tuning (RPN 2,
+whole semitones), and RPN 127/127 (null) or any NRPN stops Data Entry
+reaching them. Increment and Decrement step the bend range and the coarse
+tuning a semitone and the fine tuning one 14-bit step. A SoundFont part
+plays them (``soundfont``'s ``bend_range`` and ``tuning``); an
+audioinstruments from before those properties gets the bend scaled into its
+fixed two semitones, which a range under two plays right and a wider one
+clips. audiocomponents' synths and drum machines don't bend, so nothing
+reaches them. Reset All Controllers sets the RPN back to null and keeps the
+values; GM System On puts the values back too. Reverb (CC91) and chorus
+(CC93) are each part's send, but there is one reverb and one chorus on the
+master, so the master's level is the mean of the sends of the parts in use
+(the ones with an instrument), whatever order they came in. A true send per
+part needs a bus in the sampler's kernel, which it doesn't have; rendering a
+part's voices twice to make one would cost more than a board's block.
 All Sound Off, Reset All Controllers and All Notes Off (120, 121, 123) do
 what GM says. Any other controller reaches the instrument's
 ``control_change`` as it is.
@@ -102,6 +124,18 @@ CC_BANK_MSB, CC_BANK_LSB = 0, 32
 CC_VOLUME, CC_PAN, CC_SUSTAIN = 7, 10, 64
 CC_REVERB, CC_CHORUS = 91, 93
 CC_ALL_SOUND_OFF, CC_RESET_CONTROLLERS, CC_ALL_NOTES_OFF = 120, 121, 123
+CC_MOD_WHEEL, CC_EXPRESSION = 1, 11
+CC_DATA_MSB, CC_DATA_LSB, CC_DATA_INC, CC_DATA_DEC = 6, 38, 96, 97
+CC_NRPN_LSB, CC_NRPN_MSB, CC_RPN_LSB, CC_RPN_MSB = 98, 99, 100, 101
+#: The registered parameters a part keeps, by (MSB, LSB): MIDI's numbers.
+RPN_BEND_RANGE, RPN_FINE_TUNING, RPN_COARSE_TUNING = (0, 0), (0, 1), (0, 2)
+RPN_NULL = (127, 127)
+#: Their power-on values, as 14-bit Data Entry (MSB << 7 | LSB): two
+#: semitones of bend, and both tunings centred.
+RPN_DEFAULTS = {RPN_BEND_RANGE: 2 << 7, RPN_FINE_TUNING: 8192, RPN_COARSE_TUNING: 64 << 7}
+MAX_BEND_RANGE = 24  # semitones, as GM2 and most modules cap it
+#: The bend an audioinstruments without ``bend_range`` plays at full deflection.
+NATIVE_BEND_RANGE = 2.0
 #: Macro *i* of a part's instrument is CC ``MACRO_CC + i``.
 MACRO_CC = 102
 MACRO_CCS = 16
@@ -273,6 +307,21 @@ class Part:
         self.held = set()
         self.sustained = set()
         self.bend = BEND_CENTER
+        self.rpn = RPN_NULL  # the parameter Data Entry sets; None for an NRPN
+        self.params = dict(RPN_DEFAULTS)
+        self.reverb = DEFAULT_REVERB  # CC91, the part's send
+        self.chorus = DEFAULT_CHORUS  # CC93
+
+    @property
+    def bend_range(self):
+        """Pitch Bend Sensitivity in semitones, cents included."""
+        v = self.params[RPN_BEND_RANGE]
+        return min(MAX_BEND_RANGE, (v >> 7) + (v & 0x7F) / 100.0)
+
+    @property
+    def tuning(self):
+        """Fine and coarse tuning together, in semitones."""
+        return ((self.params[RPN_COARSE_TUNING] >> 7) - 64) + (self.params[RPN_FINE_TUNING] - 8192) / 8192.0
 
     @property
     def drums(self):
@@ -461,6 +510,7 @@ class Module:
             return None
         part.inst = inst
         part.inst_name = name
+        self._sends()
         if self.mixer is not None and not (self.voice_pool is not None and name in (MELODIC, DRUMS)):
             voice = self.mixer.voice[part.channel]
             voice.play(inst.output, loop=True)
@@ -473,6 +523,7 @@ class Module:
         inst = part.inst
         part.inst = None
         part.inst_name = None
+        self._sends()
         if inst is None:
             return
         try:
@@ -501,8 +552,24 @@ class Module:
             inst.control_change(CC_BANK_MSB, part.bank_msb)
             inst.control_change(CC_BANK_LSB, part.bank_lsb)
         self._select(part)
-        if part.bend != BEND_CENTER:
-            inst.pitch_bend(part.bend)
+        self._tune(part)
+        inst.pitch_bend(self._wheel(part))  # centred too: a reset may not centre it
+
+    def _tune(self, part):
+        """Give a SoundFont part its bend range and tuning."""
+        inst = part.inst
+        if inst is not None and part.inst_name in (MELODIC, DRUMS) and hasattr(inst, "bend_range"):
+            inst.bend_range = part.bend_range
+            inst.tuning = part.tuning
+
+    def _wheel(self, part):
+        """The bend to send the part's instrument: as it came, unless the
+        instrument's range is fixed, when it is scaled into that range."""
+        inst = part.inst
+        if part.inst_name not in (MELODIC, DRUMS) or hasattr(inst, "bend_range"):
+            return part.bend
+        v = BEND_CENTER + int((part.bend - BEND_CENTER) * part.bend_range / NATIVE_BEND_RANGE)
+        return 0 if v < 0 else 16383 if v > 16383 else v
 
     def _select(self, part):
         """Pick the part's program on its instrument, then its volume and
@@ -512,7 +579,7 @@ class Module:
             index = self.kit_index(part.program) if part.inst_name == DRUMS else part.program
             if index in inst.patches:
                 inst.program_change(index)
-            inst.set_macro(VOLUME_MACRO, part.volume)
+            inst.control_change(CC_VOLUME, part.volume)
             inst.set_macro(PAN_MACRO, part.pan)
         else:
             if part.bank_lsb in inst.patches:
@@ -633,6 +700,9 @@ class Module:
             self.control(part, d1, d2)
         elif kind == 0xC0:
             self.program(part, d1)
+        elif kind == 0xD0:
+            if part.inst is not None and hasattr(part.inst, "channel_pressure"):
+                part.inst.channel_pressure(d1)
         elif kind == 0xE0:
             self.bend(part, d1 | (d2 << 7))
 
@@ -694,7 +764,7 @@ class Module:
             part.volume = value
             if inst is not None:
                 if part.inst_name in (MELODIC, DRUMS):
-                    inst.set_macro(VOLUME_MACRO, value)
+                    inst.control_change(CC_VOLUME, value)
                 else:
                     self._level(part)
         elif cc == CC_PAN:
@@ -710,9 +780,18 @@ class Module:
             if not on:
                 self._release_sustained(part)
         elif cc == CC_REVERB:
-            self.set_reverb(value)
+            part.reverb = value
+            self._sends()
         elif cc == CC_CHORUS:
-            self.set_chorus(value)
+            part.chorus = value
+            self._sends()
+        elif cc in (CC_RPN_MSB, CC_RPN_LSB):
+            msb, lsb = part.rpn if part.rpn is not None else RPN_NULL
+            part.rpn = (value, lsb) if cc == CC_RPN_MSB else (msb, value)
+        elif cc in (CC_NRPN_MSB, CC_NRPN_LSB):
+            part.rpn = None  # no NRPNs here: Data Entry goes nowhere
+        elif cc in (CC_DATA_MSB, CC_DATA_LSB, CC_DATA_INC, CC_DATA_DEC):
+            self.data_entry(part, cc, value)
         elif cc == CC_ALL_SOUND_OFF:
             self.all_sound_off(part)
         elif cc == CC_RESET_CONTROLLERS:
@@ -735,7 +814,30 @@ class Module:
     def bend(self, part, value):
         part.bend = value
         if part.inst is not None:
-            part.inst.pitch_bend(value)
+            part.inst.pitch_bend(self._wheel(part))
+
+    def data_entry(self, part, cc, value):
+        """Data Entry (CC6, CC38), Increment (CC96) or Decrement (CC97) for
+        the part's selected RPN: an MSB alone zeroes the LSB."""
+        rpn = part.rpn
+        if rpn not in part.params:
+            return
+        v = part.params[rpn]
+        if cc == CC_DATA_MSB:
+            v = value << 7
+        elif cc == CC_DATA_LSB:
+            v = (v & 0x3F80) | value
+        else:
+            step = 1 if rpn == RPN_FINE_TUNING else 128
+            v += step if cc == CC_DATA_INC else -step
+            v = 0 if v < 0 else 16383 if v > 16383 else v
+        if rpn == RPN_BEND_RANGE and v > MAX_BEND_RANGE << 7:
+            v = MAX_BEND_RANGE << 7
+        part.params[rpn] = v
+        if part.inst is not None:
+            self._tune(part)
+            if rpn == RPN_BEND_RANGE and part.bend != BEND_CENTER:
+                part.inst.pitch_bend(self._wheel(part))
 
     def _release_sustained(self, part):
         notes = part.sustained
@@ -761,12 +863,21 @@ class Module:
             self._apply(part)
 
     def reset_controllers(self, part):
-        """CC121: pedal up, bend centred; program, volume and pan stay."""
+        """CC121, as RP-015 has it: pedal up, bend centred, Expression 127,
+        the mod wheel and channel pressure 0, and the RPN null; program,
+        volume, pan and the RPN values stay."""
         part.sustain = False
         self._release_sustained(part)
         part.bend = BEND_CENTER
-        if part.inst is not None:
-            part.inst.pitch_bend(BEND_CENTER)
+        part.rpn = RPN_NULL
+        inst = part.inst
+        if inst is not None:
+            inst.pitch_bend(BEND_CENTER)
+            if part.inst_name in (MELODIC, DRUMS):
+                inst.control_change(CC_EXPRESSION, 127)
+                inst.control_change(CC_MOD_WHEEL, 0)
+                if hasattr(inst, "channel_pressure"):
+                    inst.channel_pressure(0)
 
     def panic(self):
         """Every part silent now; programs and levels stay."""
@@ -776,7 +887,8 @@ class Module:
 
     def gm_reset(self):
         """GM System On: every part back to bank 0, program 0, volume 100,
-        pan centre, pedal up, bend centred; reverb 40 and chorus 0. A part
+        pan centre, pedal up, bend centred, two semitones of bend and no
+        tuning; reverb 40 and chorus 0. A part
         playing one of audiocomponents' instruments lets it go, and plays
         the SoundFont again from its next note."""
         for part in self.parts:
@@ -787,8 +899,7 @@ class Module:
                 else:
                     part.inst.reset()
                     self._apply(part)
-        self.set_reverb(DEFAULT_REVERB)
-        self.set_chorus(DEFAULT_CHORUS)
+        self._sends()
 
     # -- a UI's channel sliders -------------------------------------------------------
 
@@ -811,6 +922,13 @@ class Module:
         self.master_level = level
         if self.on_master is not None:
             self.on_master(level)
+
+    def _sends(self):
+        """The master reverb and chorus: the mean of the parts' sends,
+        over the parts in use, or every part before any is."""
+        parts = [p for p in self.parts if p.inst is not None] or self.parts
+        self.set_reverb((sum(p.reverb for p in parts) + len(parts) // 2) // len(parts))
+        self.set_chorus((sum(p.chorus for p in parts) + len(parts) // 2) // len(parts))
 
     def set_reverb(self, level):
         self.reverb_level = level

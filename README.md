@@ -23,7 +23,8 @@ Bank Select and Program Change choose its sound.
 | 81 | the *n*-th drum machine (`engine.DRUM_MACHINES`) | the drum machine's patch |
 
 Macro *i* of a part's instrument is CC 102 + *i*. Volume (CC7) and pan (CC10)
-work on every part. The module answers the MIDI Identity Request with
+work on every part, and so do the bend range and the tuning by RPN, the
+reverb and chorus sends, and GM System On. The module answers the MIDI Identity Request with
 manufacturer `7D`, family 1, model 1.
 
 To run it headless on a MIDI port, with `lib/`, audiocomponents' `lib/` and
@@ -52,3 +53,12 @@ REAPER on Windows: REAPER plays a five-part song
 ([`tools/song.py`](tools/song.py)) to the module over a loopback MIDI port, on
 each interpreter in turn, and it checks every part arrived and was heard. Its
 docstring lists what it needs on Windows.
+
+[`tools/gm_gate.py`](tools/gm_gate.py) plays Standard MIDI Files through the
+module offline ([`tools/render_mid.py`](tools/render_mid.py)) on all four
+interpreters and measures the WAVs: the pitch of bent and tuned notes, levels
+after each reset, the reverb's tail, and that nothing is left sounding.
+Its own two songs come from [`tools/gm_songs.py`](tools/gm_songs.py), with a
+sine bank so a pitch reads straight off the WAV; `--songs FOLDER` adds
+ordinary GM files played on your own bank, and `--plants` shows each check
+fail on a fault planted for it.
