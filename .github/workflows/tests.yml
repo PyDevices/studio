@@ -49,7 +49,7 @@ jobs:
 
   # Vamp's engine check and link contract, and the sound module's contract,
   # on CPython and unix MicroPython, each with its planted faults. The
-  # MicroPython build is most of the time, about five minutes.
+  # whole job takes under three minutes, half of it the MicroPython build.
   engines:
     runs-on: ubuntu-latest
     timeout-minutes: 30
