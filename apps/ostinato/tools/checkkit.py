@@ -28,9 +28,9 @@ import time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-sys.path.insert(0, str(ROOT / "app" / "shared"))
+sys.path.insert(0, str(ROOT.parent.parent / "lib"))
 
-import model  # noqa: E402
+from songlink import model  # noqa: E402
 from groovebox_check import App  # noqa: E402
 
 PORT = 8770

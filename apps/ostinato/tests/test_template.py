@@ -56,6 +56,19 @@ class TemplateTests(unittest.TestCase):
         for icon in manifest["icons"]:
             self.assertTrue((ROOT / icon["src"]).is_file(), icon["src"])
 
+    def test_worker_files_exist(self):
+        """Every Python file app/boot_config.js hands a worker is in the tree
+        (vendored ones aside). lib/ is studio's lib/, two folders up, as
+        tools/serve.py serves it: the song model Ostinato shares with Vamp."""
+        cfg = json.loads(_read("app/boot_config.js").split("export default", 1)[1].rstrip().rstrip(";"))
+        for worker in ("ui", "engine"):
+            for src in cfg[worker]["files"]:
+                if src.startswith("vendor/"):
+                    continue
+                path = ROOT.parent.parent / src if src.startswith("lib/") else ROOT / src
+                self.assertTrue(path.is_file(), src)
+        self.assertIn("lib/songlink/model.py", cfg["engine"]["files"])
+
     def test_shell_references_existing_local_files(self):
         """sw.js caches the page and everything the page loads before its
         workers run, every one of those files exists, and app/precache.json

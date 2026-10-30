@@ -20,8 +20,8 @@ import argparse, json, pathlib, sys, time
 import numpy as np
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "tools")); sys.path.insert(0, str(ROOT / "app" / "shared"))
-import model
+sys.path.insert(0, str(ROOT / "tools")); sys.path.insert(0, str(ROOT.parent.parent / "lib"))
+from songlink import model
 
 
 def run(s):

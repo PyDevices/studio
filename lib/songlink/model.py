@@ -1,4 +1,6 @@
-"""Ostinato's project: plain data, shared by the UI and the engine.
+"""The song: plain data, shared by every panel and the engine that plays it.
+
+Ostinato's UI and engines use it, and so does Vamp.
 
 A project is dicts, lists, numbers and strings only, so it saves as JSON and
 crosses between workers as a message. Neither side edits it in place behind
@@ -99,6 +101,53 @@ def pattern_at(track, tick):
     if n and tick >= n["at"]:
         return n["pattern"], n["at"]
     return track.get("current", 0), track.get("current_at", 0)
+
+
+def segments(project, t0, t1):
+    """What plays between ticks t0 and t1, as (from, to, base, patterns):
+    patterns maps track id -> pattern index (or -1 for silence), and a
+    pattern's tick 0 falls at ``base``. Pattern mode is one endless segment
+    per pending switch: each track plays its own pattern, and a switch splits
+    the range at its bar line, its value (pattern, the tick it starts on).
+    Song mode walks the scenes, looping the song, or loops the one scene
+    ``loop_scene`` names."""
+    p = project
+    song = p.get("song") or []
+    loop = p.get("loop_scene")
+    if loop is not None and 0 <= loop < len(song):
+        song = [song[loop]]
+    if not (p.get("song_mode") and song):
+        cuts = sorted({t["next"]["at"] for t in p["tracks"] if t.get("next") and t0 < t["next"]["at"] < t1})
+        edges = [t0] + cuts + [t1]
+        out = []
+        for i in range(len(edges) - 1):
+            a = edges[i]
+            out.append((a, edges[i + 1], 0, {t["id"]: pattern_at(t, a) for t in p["tracks"]}))
+        return out
+    lengths = []
+    for scene in song:
+        bars = 1
+        for t in p["tracks"]:
+            i = scene["patterns"].get(str(t["id"]), -1)
+            if 0 <= i < len(t["patterns"]):
+                bars = max(bars, t["patterns"][i]["bars"])
+        lengths.append(bars * BAR * max(1, scene.get("repeat", 1)))
+    total = sum(lengths)
+    out = []
+    loop = int(max(t0, 0) // total)
+    while True:
+        start = loop * total
+        for k in range(len(song)):
+            scene, length = song[k], lengths[k]
+            a, b = start, start + length
+            start = b
+            if b <= t0:
+                continue
+            if a >= t1:
+                return out
+            pats = {t["id"]: scene["patterns"].get(str(t["id"]), -1) for t in p["tracks"]}
+            out.append((max(a, t0), min(b, t1), a, pats))
+        loop += 1
 
 
 def shown_pattern(track):

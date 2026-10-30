@@ -1,12 +1,13 @@
-"""Ostinato's box: the song and the sound on one MicroPython, the screens elsewhere.
+"""Vamp: the song and the sound on one MicroPython, the screens elsewhere.
 
-On the ESP32-P4 DEV-KIT, with the files from ``tools/box_files.py`` on it::
+On the ESP32-P4 DEV-KIT, with the files from ``tools/vamp_files.py`` on it::
 
-    import ostinato_box; ostinato_box.main()
+    import vamp; vamp.run()
 
-On desktop MicroPython (unix or Windows), from the repository::
+On desktop MicroPython (unix or Windows), with studio's ``lib/`` and hmilink on
+MICROPYPATH::
 
-    micropython -X heapsize=96M app/box/main.py --bank GeneralUser-GS.sf2 [--song FILE]
+    micropython -X heapsize=96M -m vamp.main --bank GeneralUser-GS.sf2 [--song FILE]
         [--port 9100] [--midi NAME] [--lookahead-ms 750] [--seconds N]
 
 Then the window joins it (``python -m ostinato --connect BOX:9100``) and a
@@ -26,7 +27,7 @@ except AttributeError:
 
 DEFAULTS = {
     "bank": "/sd/soundfonts/GeneralUser-GS.sf2" if _BOARD else "GeneralUser-GS.sf2",
-    "song": "/ostinato/soundfont_check.json" if _BOARD else None,   # the box plays SoundFont tracks
+    "song": "/vamp/song.json" if _BOARD else None,   # the box plays SoundFont tracks
     "port": 9100,
     "midi": None,
     "lookahead_ms": 750,
@@ -188,8 +189,8 @@ def main(argv=None):
         _log("box: Ethernet", lan.ifconfig()[0])
         _mount_sd()
 
-    import boxengine as be
-    from boxdevice import BoxDevice
+    from vamp import engine as be
+    from vamp.device import BoxDevice
 
     project = None
     if opts["song"]:
@@ -208,8 +209,9 @@ def main(argv=None):
     _log("box: bank open in %d ms" % time.ticks_diff(time.ticks_ms(), t))
     page = opts["page"]
     if page is None:
-        here = __file__.rsplit("/", 1)[0] if "/" in __file__ else "."
-        page = "/ostinato/page.html" if _BOARD else here + "/../link/page.html"
+        import songlink
+
+        page = songlink.page()
     dev = BoxDevice(engine, project, port=opts["port"], page=page, pump=pump, log=_log, plant=opts["plant"])
     _log("box: the song on port %d, %d tracks, %d KB heap free" % (opts["port"], len(dev.model.doc["tracks"]),
                                                                   gc.mem_free() // 1024))

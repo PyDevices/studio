@@ -1,8 +1,9 @@
-"""Serve Ostinato from the repo root for local use and tests.
+"""Serve Ostinato from its folder for local use and tests.
 
     .venv/bin/python tools/serve.py [--port 8765] [--isolate]
 
-No caching, so an edit shows on reload. ``--isolate`` adds the COOP/COEP
+No caching, so an edit shows on reload. ``/lib/`` is studio's ``lib/``, two
+folders up, where the song model Ostinato shares with Vamp lives (songlink). ``--isolate`` adds the COOP/COEP
 headers that SharedArrayBuffer needs (P0's SAB comparison only).
 """
 
@@ -12,6 +13,7 @@ import http.server
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+LIB = ROOT.parent.parent / "lib"
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -19,6 +21,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map,
                       ".mjs": "text/javascript", ".js": "text/javascript", ".wasm": "application/wasm",
                       ".whl": "application/zip", ".json": "application/json"}
+
+    def translate_path(self, path):
+        if path.startswith("/lib/") and not (ROOT / "lib").is_dir():
+            return str(LIB) + super().translate_path(path)[len(str(ROOT / "lib")):]
+        return super().translate_path(path)
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")

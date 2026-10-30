@@ -46,7 +46,7 @@ def main():
     out = os.path.abspath(a.out)
     os.makedirs(out, exist_ok=True)
 
-    import model
+    from songlink import model
     import runners
 
     with open(os.path.join(ROOT, "assets", "demo_song.json")) as f:

@@ -15,26 +15,31 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 # The desktop app's MIDI port and its link between processes (hmilink, and
 # the song as its model): scripts/fetch_midi.py fetches them beside the rest.
-DESKTOP_ONLY = ("vendor/lib/midiports/windows.py", "vendor/lib/hmilink/", "app/shared/hmilink_model.py")
+DESKTOP_ONLY = ("vendor/lib/midiports/windows.py", "vendor/lib/hmilink/", "lib/songlink/link.py")
+# songlink (the song model Ostinato shares with Vamp) is in studio's lib/, two
+# folders up. The page fetches it as lib/songlink/...: tools/serve.py serves
+# studio's lib/ there, and a published copy carries it at that path.
+LIB = ROOT.parent.parent / "lib"
 
 
-def tree(folder, dest=""):
+def tree(folder, dest="", root=ROOT, url=""):
     out = {}
-    base = ROOT / folder
+    base = root / folder
     for d, _, fs in os.walk(base):
         for f in sorted(fs):
             if f.endswith(".py"):
                 p = pathlib.Path(d) / f
                 rel = p.relative_to(base).as_posix()
-                if not p.relative_to(ROOT).as_posix().startswith(DESKTOP_ONLY):
-                    out[p.relative_to(ROOT).as_posix()] = dest + rel
+                src = url + p.relative_to(root).as_posix()
+                if not src.startswith(DESKTOP_ONLY):
+                    out[src] = dest + rel
     return out
 
 
 def main():
     w = json.loads((ROOT / "wheels.json").read_text())
     whl = lambda n: "vendor/wheels/" + w[n]["file"]
-    shared = tree("app/shared")
+    shared = tree("songlink", "songlink/", LIB, "lib/")
     ui = {"packages": [whl("pydevices"), whl("pydevices-lvgl")],
           "files": {**shared, **tree("app/ui"), **tree("vendor/board")}}
     engine = {"packages": [whl("pydevices"), whl("pydevices-audiodsp"), whl("pydevices-audioeffects"),

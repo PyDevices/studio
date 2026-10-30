@@ -1,14 +1,16 @@
-"""Checks the box engine (app/box/boxengine.py) offline, on MicroPython.
+"""Checks Vamp's engine (lib/vamp/engine.py) offline, on MicroPython and CPython.
 
 Pulls the engine's output itself, so it owns the clock, and listens to what
 comes out: notes start on their frame however rarely the sequencer runs, an
 edit stops the notes it removed, mute silences, the master rack is in the
 path, and the keyboard plays at once.
 
-    micropython -X heapsize=96M tools/box_check.py BANK.sf2 [--plant FAULT]
+    micropython -X heapsize=96M tests/vamp_check.py BANK.sf2 [--plant FAULT]
 
-MICROPYPATH needs the audio libraries (audioinstruments, audioeffects),
-app/box and app/shared. ``--plant`` breaks the engine one way (nodelay,
+MICROPYPATH (or PYTHONPATH) needs the audio libraries (audioinstruments,
+audioeffects) and studio's lib/. Any General MIDI bank with a closed and an
+open hi-hat in one exclusive class will do: tests/vamp_bank.py writes a small
+one. ``--plant`` breaks the engine one way (nodelay,
 nocancel, nomute, norack, nolive, nochoke) and the check must then fail.
 """
 
@@ -17,8 +19,8 @@ import time
 
 import audiocore
 
-import boxengine as be
-import model
+from vamp import engine as be
+from songlink import model
 
 SR = be.SR
 TEMPO = 120.0                      # a quarter is 24,000 frames
@@ -200,16 +202,21 @@ def main(argv):
         rig.eng.play(START)
         rig.pull(SR * 2)
         gaps[len(rack)] = rig.energy(START + SR // 4, START + SR // 2)
-    check(gaps[1] > 10 * gaps[0] + 100, "a master reverb fills the gap after a hit (%d dry, %d wet)" % (gaps[0], gaps[1]))
+        if not rack:
+            hit = rig.energy(START, START + SR // 8)
+    # Against the hit itself, so it holds for any bank: a hat the bank filters
+    # darker feeds the reverb less.
+    check(gaps[1] > 10 * gaps[0] + hit / 1000,
+          "a master reverb fills the gap after a hit (%d dry, %d wet, the hit %d)" % (gaps[0], gaps[1], hit))
 
     # 6. The keyboard: a pad hit sounds in the next block, the song stopped.
     rig = Rig(bank)
     rig.eng.apply({"op": "replace", "path": [], "value": probe_song(beats)})
     rig.pull(be.BLOCK * 4)
     hit = rig.frames
-    t = time.ticks_us()
+    t = be.ticks_us()
     rig.eng.live(0x99, be.PAD_BASE, 110)
-    us = time.ticks_diff(time.ticks_us(), t)
+    us = be.ticks_diff(be.ticks_us(), t)
     rig.pull(SR // 4)
     got = [g - hit for g in rig.onsets() if g >= hit]
     check(got and got[0] < be.BLOCK * 2, "a pad hit sounds within two blocks (%s frames, %d us in Python)" % (got[:1], us))
@@ -228,7 +235,7 @@ def main(argv):
     check(ringing > 1000 and after < ringing / 20,
           "the open hat rings until the closed hat's frame, then stops (energy %d, then %d)" % (ringing, after))
 
-    print("box check:", "FAILED " + ", ".join(FAILS) if FAILS else "all passed", "(plant: %s)" % fault)
+    print("vamp check:", "FAILED " + ", ".join(FAILS) if FAILS else "all passed", "(plant: %s)" % fault)
     if FAILS:
         sys.exit(1)
 

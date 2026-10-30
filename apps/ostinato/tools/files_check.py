@@ -33,9 +33,9 @@ from playwright.sync_api import sync_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-sys.path.insert(0, str(ROOT / "app" / "shared"))
+sys.path.insert(0, str(ROOT.parent.parent / "lib"))
 from groovebox_check import App, SR, STEP_S, onsets, pitches_at  # noqa: E402
-import model  # noqa: E402
+from songlink import model  # noqa: E402
 
 BAR_S = STEP_S * 16
 MENU = {"new": 0, "demo": 1, "open": 2, "save": 3, "save-as": 4, "wav": 5, "midi": 6}

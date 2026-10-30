@@ -1,9 +1,9 @@
-"""The box's sound: every SoundFont track on one sampler, sequenced ahead.
+"""Vamp's sound: every SoundFont track on one sampler, sequenced ahead.
 
-This is the engine side of Ostinato on a board (an ESP32-P4) and on desktop
-MicroPython, one process with no workers. The desktop engine
-(app/engine/engine.py) renders each track in Python, a block at a time; here
-nothing in Python touches the audio. The tracks share one ``soundfont.Voices``
+This is a groovebox's engine on a board (an ESP32-P4) and on desktop
+MicroPython, one process with no workers. Ostinato's engine
+(apps/ostinato/app/engine/engine.py) renders each track in Python, a block at
+a time; here nothing in Python touches the audio. The tracks share one ``soundfont.Voices``
 pool, the pool goes through the master rack and a level, and the audio pump
 renders all of it on the other core.
 
@@ -34,7 +34,7 @@ import audioinstruments
 import audioinstruments.soundfont as sf
 import audiomixer
 
-import model
+from songlink import model
 
 SR = 48000
 BLOCK = 256
@@ -449,44 +449,8 @@ class BoxEngine:
     # -- what plays ---------------------------------------------------------------
 
     def segments(self, t0, t1):
-        """As the desktop engine's (app/engine/engine.py): (from, to, base, patterns)."""
-        p = self.project
-        song = p.get("song") or []
-        loop = p.get("loop_scene")
-        if loop is not None and 0 <= loop < len(song):
-            song = [song[loop]]
-        if not (p.get("song_mode") and song):
-            cuts = sorted({t["next"]["at"] for t in p["tracks"] if t.get("next") and t0 < t["next"]["at"] < t1})
-            edges = [t0] + cuts + [t1]
-            out = []
-            for i in range(len(edges) - 1):
-                a, b = edges[i], edges[i + 1]
-                out.append((a, b, 0, {t["id"]: model.pattern_at(t, a) for t in p["tracks"]}))
-            return out
-        lengths = []
-        for scene in song:
-            bars = 1
-            for t in p["tracks"]:
-                i = scene["patterns"].get(str(t["id"]), -1)
-                if 0 <= i < len(t["patterns"]):
-                    bars = max(bars, t["patterns"][i]["bars"])
-            lengths.append(bars * model.BAR * max(1, scene.get("repeat", 1)))
-        total = sum(lengths)
-        out = []
-        loop = int(max(t0, 0) // total)
-        while True:
-            start = loop * total
-            for k in range(len(song)):
-                scene, length = song[k], lengths[k]
-                a, b = start, start + length
-                start = b
-                if b <= t0:
-                    continue
-                if a >= t1:
-                    return out
-                pats = {t["id"]: scene["patterns"].get(str(t["id"]), -1) for t in p["tracks"]}
-                out.append((max(a, t0), min(b, t1), a, pats))
-            loop += 1
+        """What plays between ticks t0 and t1: :func:`songlink.model.segments`."""
+        return model.segments(self.project, t0, t1)
 
     def _schedule(self, f0, f1):
         """The note-ons whose time falls in frames [f0, f1)."""

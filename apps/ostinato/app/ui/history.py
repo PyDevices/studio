@@ -7,7 +7,7 @@ knob (changes to the same value in quick succession merge into one step).
 
 import time
 
-import model
+from songlink import model
 
 MERGE_S = 1.0     # changes to one value this close together are one step
 

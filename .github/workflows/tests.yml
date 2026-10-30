@@ -1,0 +1,118 @@
+name: Tests
+
+# Documentation-only changes can't change these results, so they don't run them.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '**/LICENSE'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '**/LICENSE'
+
+permissions:
+  contents: read
+
+env:
+  # What Vamp and the sound module are checked against, each a commit so a
+  # change upstream can't redden this repository with nothing here moved.
+  # audiocomponents names its own audiodsp in AUDIODSP_PIN.
+  AUDIOCOMPONENTS_REF: 955ddb31dd897c6e9100222bd348be9b63d397fe
+  # hmilink isn't in a pydevices release yet.
+  PYDEVICES_REF: aa6911844168c21296a8f72dc825d744bf2a6c1f
+  MICROPYTHON_REF: v1.29.0
+
+jobs:
+  # Ostinato's own checks: the page, the service worker and what each
+  # worker loads. A few seconds once PyScript is vendored.
+  ostinato:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.x"
+
+      - name: Vendor PyScript
+        working-directory: apps/ostinato
+        run: ./scripts/vendor_pyscript.sh
+
+      - name: Ostinato's tests
+        working-directory: apps/ostinato
+        run: python -m unittest discover -s tests -v
+
+  # Vamp's engine check and link contract, and the sound module's contract,
+  # on CPython and unix MicroPython, each with its planted faults. The
+  # MicroPython build is most of the time, about five minutes.
+  engines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: studio
+
+      - uses: actions/checkout@v7
+        with:
+          repository: PyDevices/audiocomponents
+          ref: ${{ env.AUDIOCOMPONENTS_REF }}
+          path: audiocomponents
+
+      - uses: actions/checkout@v7
+        with:
+          repository: PyDevices/pydevices
+          ref: ${{ env.PYDEVICES_REF }}
+          path: pydevices
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Resolve audiocomponents' audiodsp pin
+        id: pin
+        run: |
+          tag=$(grep -v '^[[:space:]]*#' audiocomponents/AUDIODSP_PIN | grep -v '^[[:space:]]*$' \
+                | head -1 | awk '{print $1}')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "audiodsp pinned at $tag"
+
+      - uses: actions/checkout@v7
+        with:
+          repository: PyDevices/audiodsp
+          ref: ${{ steps.pin.outputs.tag }}
+          path: modules/audiodsp
+
+      - name: Install the audio stack on CPython
+        run: |
+          python -m pip install ./modules/audiodsp
+          python -m pip install --no-deps -e audiocomponents/lib/audioinstruments -e audiocomponents/lib/audioeffects
+
+      - uses: actions/checkout@v7
+        with:
+          repository: micropython/micropython
+          ref: ${{ env.MICROPYTHON_REF }}
+          path: micropython
+
+      # USER_C_MODULES is the parent folder: py.mk takes every
+      # */micropython.mk one level down, which is audiodsp alone.
+      - name: Build unix MicroPython with audiodsp
+        run: |
+          (cd modules/audiodsp && ./scripts/fetch_deps.sh)
+          make -C micropython/mpy-cross -j4
+          make -C micropython/ports/unix submodules
+          make -C micropython/ports/unix -j4 USER_C_MODULES=$GITHUB_WORKSPACE/modules
+
+      - name: Studio's tests
+        working-directory: studio
+        env:
+          PYDEVICES_MICROPYTHON: ${{ github.workspace }}/micropython/ports/unix/build-standard/micropython
+          AUDIOCOMPONENTS_LIB: ${{ github.workspace }}/audiocomponents/lib
+          HMILINK_PATH: ${{ github.workspace }}/pydevices/hmilink
+          VAMP_REQUIRE: "1"
+        run: python -m unittest discover -s tests -v

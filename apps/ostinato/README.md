@@ -11,6 +11,8 @@ instruments and 44 effects make the sound, and `midiports` and
 
 ## Run it
 
+Every command here runs from this folder, `apps/ostinato` in studio.
+
 ```bash
 .venv/bin/python scripts/fetch_wheels.py      # the PyDevices wheels it runs on
 .venv/bin/python scripts/fetch_midi.py        # midiports, adafruit_midi, the board config
@@ -62,7 +64,8 @@ venv above unless `PY315` names another interpreter.
   same network) and you get a second front panel: tempo, Play and Stop, each
   track's mute and volume, and a step grid. An edit on either shows on the other.
   `--device` is that process alone, with no window, and `--connect HOST:PORT`
-  is the window alone, joining one that's already running.
+  is the window alone, joining one that's already running. That one can be
+  Vamp, studio's headless groovebox: the window is one of its front panels.
 
 The two SoundFont instruments, **SOUNDFONT** (General MIDI's 128 programs)
 and **SOUNDFONT DRUMS** (its kits), play whatever `.sf2` they find: the
@@ -104,13 +107,13 @@ for the rest; the script says how many bars that changed.
   its track and hands it to the master worker (`app/engine/master.py`),
   which sums them, runs the master effects, and is the one stream the
   AudioWorklet (`workers/audio_worklet.js`) plays.
-- `app/shared/model.py` is the project: plain data, changed only by ops that
-  both sides apply.
+- The project is `songlink.model`, in studio's `lib/songlink/`: plain data,
+  changed only by ops that both sides apply. Vamp plays the same songs.
 - `workers/` is pyscript-template's worker kit.
 
-`app/shared/model.py` imports on CPython, Pyodide and MicroPython
-([issue 9](https://github.com/bdbarnett/ostinato/issues/9) was one starred
-expression). The engine and UI around it haven't been tried on a board yet.
+`songlink.model` imports on CPython, Pyodide and MicroPython. The engine and
+UI around it haven't been tried on a board yet; on a board, the songs play on
+Vamp instead (studio's `lib/vamp/`).
 
 ## Checks
 

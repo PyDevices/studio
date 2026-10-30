@@ -27,5 +27,5 @@ wait $SEND; wait $APP
 echo "app exit $?"
 mkdir -p "$ROOT/runs/$NAME"
 cp "$OUT"/*.log "$OUT"/*.json "$ROOT/runs/$NAME/" 2>/dev/null
-/home/brad/gh/bdbarnett/ostinato/.venv/bin/python "$ROOT/tools/desktop_tap_check.py" "$OUT" | tee "$ROOT/runs/$NAME/check.txt"
+"${PYTHON:-$ROOT/.venv/bin/python}" "$ROOT/tools/desktop_tap_check.py" "$OUT" | tee "$ROOT/runs/$NAME/check.txt"
 cp "$OUT/check.json" "$ROOT/runs/$NAME/" 2>/dev/null

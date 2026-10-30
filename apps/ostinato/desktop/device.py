@@ -3,10 +3,10 @@
     python -m ostinato --role device [--port 9100] [--song FILE]
 
 It runs the engines and the mixer (desktop/runners.py) and holds the song
-(app/shared/hmilink_model.py). Panels connect on one port: the desktop UI
+(songlink.link, in studio's lib/). Panels connect on one port: the desktop UI
 (``python -m ostinato --connect 127.0.0.1:9100``, or ``--split``, which
 starts this process for you) and any browser, which gets the song page
-(app/link/page.html) at http://<this machine>:9100/.
+(songlink's page.html, in studio's lib/) at http://<this machine>:9100/.
 
 Every edit is a JSON Patch op a panel sends. The device numbers it, applies
 it to the song and to the engines, and sends it to every panel. The engines'
@@ -33,14 +33,15 @@ import time
 import hmilink
 from hmilink import tcp
 
-import model as song
-from hmilink_model import SongModel
+import songlink
+from songlink import model as song
+from songlink.link import SongModel
 
 SR = 48000
 START_MARGIN_S = 0.08
 STATUS_S = 0.03            # how often the engines are asked where they are
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PAGE = os.path.join(ROOT, "app", "link", "page.html")
+PAGE = songlink.page()
 
 
 class Swapper:
@@ -174,7 +175,7 @@ class SongDevice:
                     link.close()
         self.stats["events"] += 1
 
-    # -- what the song asks of the host (hmilink_model.SongModel) --
+    # -- what the song asks of the host (songlink.link.SongModel) --
 
     def telemetry(self):
         if not self.fresh:

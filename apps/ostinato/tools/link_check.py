@@ -4,7 +4,7 @@
 
 It runs the device (desktop/device.py) in this process with stand-in
 engines, the desktop UI's side of the link (desktop/ui/engines.py over
-desktop/linkrunner.py) as one panel, and the song page (app/link/page.html)
+desktop/linkrunner.py) as one panel, and the song page (songlink's page.html)
 in headless Chromium as the other. Then:
 
 - the window loads a song and edits it (tempo, a note, a mute): the page shows each;
@@ -38,7 +38,7 @@ import hmilink  # noqa: E402
 
 import device as devmod  # noqa: E402
 import engines as ui_engines  # noqa: E402
-import model  # noqa: E402
+from songlink import model  # noqa: E402
 from linkrunner import LinkRunner  # noqa: E402
 
 SR = 48000

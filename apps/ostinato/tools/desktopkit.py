@@ -24,9 +24,9 @@ import time
 import numpy as np
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "app" / "shared"))
+sys.path.insert(0, str(ROOT.parent.parent / "lib"))
 
-import model  # noqa: E402
+from songlink import model  # noqa: E402
 
 SR = 48000
 PORT = 8771

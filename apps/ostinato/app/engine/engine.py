@@ -30,7 +30,7 @@ import audiometer
 
 import os
 
-import model
+from songlink import model
 
 DEBUG = bool(os.environ.get("OSTINATO_DEBUG"))
 BLOCK = 256
@@ -469,46 +469,8 @@ class Engine:
     # -- what plays ---------------------------------------------------------
 
     def segments(self, t0, t1):
-        """What plays between ticks t0 and t1, as (from, to, base, patterns):
-        patterns maps track id -> pattern index (or -1 for silence), and a
-        pattern's tick 0 falls at ``base``. Pattern mode is one endless
-        segment; song mode walks the scenes, looping the song, or loops the
-        one scene ``loop_scene`` names."""
-        p = self.project
-        song = p.get("song") or []
-        loop = p.get("loop_scene")
-        if loop is not None and 0 <= loop < len(song):
-            song = [song[loop]]
-        if not (p.get("song_mode") and song):
-            # Each track plays its own pattern; a pending switch splits the
-            # range at its bar line. Values are (pattern, the tick it starts on).
-            cuts = sorted({t["next"]["at"] for t in p["tracks"] if t.get("next") and t0 < t["next"]["at"] < t1})
-            edges = [t0] + cuts + [t1]
-            return [(a, b, 0, {t["id"]: model.pattern_at(t, a) for t in p["tracks"]})
-                    for a, b in zip(edges, edges[1:])]
-        lengths = []
-        for scene in song:
-            bars = 1
-            for t in p["tracks"]:
-                i = scene["patterns"].get(str(t["id"]), -1)
-                if 0 <= i < len(t["patterns"]):
-                    bars = max(bars, t["patterns"][i]["bars"])
-            lengths.append(bars * model.BAR * max(1, scene.get("repeat", 1)))
-        total = sum(lengths)
-        out = []
-        loop = int(max(t0, 0) // total)
-        while True:
-            start = loop * total
-            for scene, length in zip(song, lengths):
-                a, b = start, start + length
-                start = b
-                if b <= t0:
-                    continue
-                if a >= t1:
-                    return out
-                pats = {t["id"]: scene["patterns"].get(str(t["id"]), -1) for t in p["tracks"]}
-                out.append((max(a, t0), min(b, t1), a, pats))
-            loop += 1
+        """What plays between ticks t0 and t1: :func:`songlink.model.segments`."""
+        return model.segments(self.project, t0, t1)
 
     def _sequence(self, until):
         """Sequence the song's notes up to context frame ``until`` into the queue."""

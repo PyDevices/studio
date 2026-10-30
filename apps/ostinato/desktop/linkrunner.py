@@ -27,8 +27,8 @@ import time
 import hmilink
 from hmilink import tcp
 
-import model
-from hmilink_model import to_pointer
+from songlink import model
+from songlink.link import to_pointer
 
 
 class LinkRunner:

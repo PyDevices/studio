@@ -27,7 +27,7 @@ import lvgl as lv
 import catalog
 import fonts
 import layout
-import model
+from songlink import model
 import page
 import theme
 from engines import Engines

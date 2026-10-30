@@ -97,8 +97,8 @@ class App:
 
     def fresh(self):
         """A new, empty project, as File > New gives you."""
-        sys.path.insert(0, str(ROOT / "app" / "shared"))
-        import model
+        sys.path.insert(0, str(ROOT.parent.parent / "lib"))
+        from songlink import model
         p = model.new_project()
         self.page.evaluate("j => window.__ostinato.ui.send({kind: 'loaded', json: j})", json.dumps(p))
         time.sleep(1.5)
@@ -314,8 +314,8 @@ def run(sess):
 
     # -- busy: a dense piano roll edited while it plays; frame time and dropouts
     app = boot()
-    sys.path.insert(0, str(ROOT / "app" / "shared"))
-    import model as _m
+    sys.path.insert(0, str(ROOT.parent.parent / "lib"))
+    from songlink import model as _m
     dense = _m.new_project()
     dense["tracks"][3]["patterns"][0] = {"bars": 4, "notes": [[k * 24, 24, 48 + (k * 5) % 24, 100] for k in range(64)]}
     dense["tracks"][0]["patterns"][0] = {"bars": 1, "notes": [[k * 24, 24, 42, 90] for k in range(16)]}

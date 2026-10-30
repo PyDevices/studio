@@ -23,8 +23,8 @@ import numpy as np
 import soundfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "tools")); sys.path.insert(0, str(ROOT / "app" / "shared"))
-import model
+sys.path.insert(0, str(ROOT / "tools")); sys.path.insert(0, str(ROOT.parent.parent / "lib"))
+from songlink import model
 from files_check import export
 
 LOWPASS = {"name": "LowPass", "bypass": False, "macros": {"0": 20}}

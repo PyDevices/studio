@@ -3,7 +3,7 @@
 import lvgl as lv
 
 import fonts
-import model
+from songlink import model
 import theme
 from theme import px
 

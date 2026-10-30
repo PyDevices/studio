@@ -22,7 +22,7 @@ import threading
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path[0:0] = [os.path.join(ROOT, "app", "engine"), os.path.join(ROOT, "app", "shared")]
+sys.path[0:0] = [os.path.join(ROOT, "app", "engine"), os.path.join(ROOT, "..", "..", "lib")]
 if "--synthio-tls" in sys.argv:
     # An experiment: synthio.py with its block clock per thread (see the packet).
     sys.path.insert(0, os.path.join(ROOT, "patched"))

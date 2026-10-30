@@ -21,8 +21,8 @@ import time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-sys.path.insert(0, str(ROOT / "app" / "shared"))
-import model  # noqa: E402
+sys.path.insert(0, str(ROOT.parent.parent / "lib"))
+from songlink import model  # noqa: E402
 
 
 def run(s):

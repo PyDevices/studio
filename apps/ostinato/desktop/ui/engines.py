@@ -11,11 +11,11 @@ already applied to the project, after which ``on_remote`` callbacks redraw.
 
 import time
 
-import model
+from songlink import model
 
 
 def to_pointer(project, op):
-    from hmilink_model import to_pointer as convert     # only a linked UI needs hmilink
+    from songlink.link import to_pointer as convert     # only a linked UI needs hmilink
 
     return convert(project, op)
 

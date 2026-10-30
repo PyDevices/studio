@@ -23,7 +23,7 @@ from pyodide.ffi import create_proxy, to_js
 from audiodev.worklet_audio import WorkletOutput
 from midiports import webmidi
 
-import model  # noqa: F401
+from songlink import model  # noqa: F401
 from enginehost import EngineHost, drain_midi as _drain
 
 SR = 48000

@@ -1,10 +1,10 @@
-"""The box as an hmilink device: it holds the song and makes the sound, in one
+"""Vamp as an hmilink device: it holds the song and makes the sound, in one
 MicroPython process.
 
-The desktop device (desktop/device.py) runs engines in processes of their
-own and passes messages; this one has one engine (boxengine.py) and calls it.
-To a panel the two look the same: the desktop window (``python -m ostinato
---connect BOX:9100``) and the browser page the box serves at
+Ostinato's split device (apps/ostinato/desktop/device.py) runs engines in
+processes of their own and passes messages; this one has one engine
+(:mod:`vamp.engine`) and calls it. To a panel the two look the same: Ostinato's
+desktop window (``python -m ostinato --connect BOX:9100``) and the browser page the box serves at
 ``http://BOX:9100/`` edit the song with JSON Patch ops, the box numbers and
 applies them, and its telemetry says where the playhead is.
 
@@ -27,9 +27,9 @@ import time
 import hmilink
 from hmilink import tcp
 
-import boxengine as be
-import model as song
-from hmilink_model import SongModel
+from vamp import engine as be
+from songlink import model as song
+from songlink.link import SongModel
 
 START_MARGIN = be.SR * 3 // 20    # 150 ms: the transport starts this long after it's asked
 STATUS_MS = 33
@@ -88,7 +88,7 @@ class BoxDevice:
             self.model.samples = {}
 
     def assign(self):
-        """The window's rule (desktop/ui/engines.py), so its engine count agrees."""
+        """The window's rule (Ostinato's desktop/ui/engines.py), so its engine count agrees."""
         load = [0.0] * self.count
         self.assignment = {}
         for t in self.model.doc["tracks"]:

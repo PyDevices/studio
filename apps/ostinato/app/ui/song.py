@@ -9,7 +9,7 @@ in view.
 
 import lvgl as lv
 
-import model
+from songlink import model
 import theme
 from theme import px
 

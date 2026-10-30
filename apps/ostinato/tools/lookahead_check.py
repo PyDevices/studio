@@ -23,11 +23,11 @@ import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for p in ("app/engine", "app/shared"):
+for p in ("app/engine", "../../lib"):
     sys.path.insert(0, os.path.join(ROOT, p))
 
 import engine as eng  # noqa: E402
-import model  # noqa: E402
+from songlink import model  # noqa: E402
 
 SR = 48000
 BARS = 4

@@ -7,9 +7,13 @@ const R = new URL("../", import.meta.url).pathname;
 const w = JSON.parse(fs.readFileSync(R + "wheels.json"));
 const py = await loadPyodide({ indexURL: R + "vendor/pyscript/pyodide/" });
 for (const n of ["pydevices-audiodsp","pydevices-audioeffects","pydevices-audioinstruments"]) await py.loadPackage(R + "vendor/wheels/" + w[n].file);
-for (const f of ["app/shared/model.py", "app/engine/engine.py"]) py.FS.writeFile("/home/pyodide/" + f.split("/").pop(), fs.readFileSync(R + f));
+// songlink (the song model) is in studio's lib/, two folders up.
+py.FS.mkdirTree("/home/pyodide/songlink");
+for (const f of ["__init__.py", "model.py"]) py.FS.writeFile("/home/pyodide/songlink/" + f, fs.readFileSync(R + "../../lib/songlink/" + f));
+py.FS.writeFile("/home/pyodide/engine.py", fs.readFileSync(R + "app/engine/engine.py"));
 py.runPython(`
-import time, engine, model, cProfile, pstats, io
+import time, engine, cProfile, pstats, io
+from songlink import model
 e = engine.Engine(48000, 0, lambda m: None)
 p = model.new_project()
 e.apply({"op":"replace","value":p})

@@ -1,10 +1,12 @@
-"""Drives a running box (app/box/main.py) over hmilink, as the window does, and
-checks the box keeps the song and the time.
+"""Drives a running Vamp (lib/vamp/main.py) over hmilink, as Ostinato's window
+does, and checks the box keeps the song and the time.
 
-    python tools/box_link_check.py HOST:PORT [--song FILE] [--browser] [--json OUT]
+    python tools/vamp_link_check.py HOST:PORT [--song FILE] [--browser] [--json OUT]
 
 The box is already running: on desktop MicroPython, or on the board over its
-Ethernet port. The check is one panel. It loads a song, presses Play, changes
+Ethernet port. This Python needs hmilink (``$HMILINK_PATH``, a pydevices
+checkout beside this one, or Ostinato's vendor/lib) and, for ``--browser``,
+Playwright. The default song is Ostinato's SoundFont check song. The check is one panel. It loads a song, presses Play, changes
 the tempo, mutes a track, adds a note and puts a reverb on the master, then
 stops, and requires:
 
@@ -26,13 +28,28 @@ import sys
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
-import ostinato  # noqa: E402,F401  (sys.path, as the desktop app has it)
+OSTINATO = os.path.join(ROOT, "apps", "ostinato")
+
+
+def _hmilink():
+    found = [os.environ.get("HMILINK_PATH")]
+    parent = ROOT
+    for _ in range(3):
+        parent = os.path.dirname(parent)
+        found.append(os.path.join(parent, "pydevices", "hmilink"))
+    found.append(os.path.join(OSTINATO, "vendor", "lib"))
+    for p in found:
+        if p and os.path.isfile(os.path.join(p, "hmilink", "__init__.py")):
+            return p
+    raise SystemExit("no hmilink: set HMILINK_PATH to the folder holding the hmilink package")
+
+
+sys.path[0:0] = [os.path.join(ROOT, "lib"), _hmilink()]
 
 import hmilink  # noqa: E402
 from hmilink import tcp  # noqa: E402
 
-import model  # noqa: E402
+from songlink import model  # noqa: E402
 
 FAILS = []
 
@@ -141,7 +158,7 @@ def browser_steps(pr, host, port):
 
 def main(argv):
     host, _, port = argv[1].rpartition(":")
-    song_path = os.path.join(ROOT, "songs", "sketches", "soundfont_check.json")
+    song_path = os.path.join(OSTINATO, "songs", "sketches", "soundfont_check.json")
     if "--song" in argv:
         song_path = argv[argv.index("--song") + 1]
     with open(song_path) as f:
@@ -235,7 +252,7 @@ def main(argv):
     if "--json" in argv:
         with open(argv[argv.index("--json") + 1], "w") as f:
             json.dump(out, f, indent=1)
-    print("box link check:", "FAILED: " + "; ".join(FAILS) if FAILS else "all passed")
+    print("vamp link check:", "FAILED: " + "; ".join(FAILS) if FAILS else "all passed")
     return 1 if FAILS else 0
 
 
