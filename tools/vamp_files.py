@@ -9,7 +9,7 @@ DEVICE is what mpftp takes (COM4, ws://192.168.1.50). Then, on the board::
 
 ``--hmilink`` names the hmilink package to copy (the folder holding
 ``__init__.py``); the default is a pydevices checkout beside this one, else
-Ostinato's vendor/lib. ``--song`` is the song the box opens, /vamp/song.json
+Ostinato's vendor/lib. ``--song`` is the song the box opens, /vamp_song.json
 on the board (default: Ostinato's SoundFont check song).
 """
 
@@ -51,7 +51,7 @@ def main(argv):
     device = argv[1]
     hmi = argv[argv.index("--hmilink") + 1] if "--hmilink" in argv else _hmilink()
     song = argv[argv.index("--song") + 1] if "--song" in argv else SONG
-    for d in ("/lib", "/lib/vamp", "/lib/songlink", "/lib/hmilink", "/vamp"):
+    for d in ("/lib", "/lib/vamp", "/lib/songlink", "/lib/hmilink"):
         try:
             mpftp("mkdir", "-d", device, d)
         except SystemExit:
@@ -61,7 +61,7 @@ def main(argv):
             mpftp("put", "-d", device, os.path.join(ROOT, "lib", package, name), "/lib/%s/%s" % (package, name))
     for name in HMILINK:
         mpftp("put", "-d", device, os.path.join(hmi, name), "/lib/hmilink/" + name)
-    mpftp("put", "-d", device, song, "/vamp/song.json")
+    mpftp("put", "-d", device, song, "/vamp_song.json")
     print("Vamp is on %s: import vamp; vamp.run()" % device)
 
 

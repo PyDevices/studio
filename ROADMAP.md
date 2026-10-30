@@ -29,3 +29,8 @@ It grows one part at a time, on the desktop interpreters first.
 
 - A published copy of the app on the web, so it installs without running a
   local server.
+
+## A guitar effects rig
+
+- An effects rig for the ESP32-P4: plug in a guitar, chain audioeffects'
+  pedals and amps, and switch presets from a footswitch or a screen.
