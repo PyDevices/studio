@@ -2,7 +2,7 @@
 # Start a separate Windows Chrome that tools/midi_play.py --cdp can drive.
 # Its own profile (C:\temp\ostinato-chrome), so the everyday browser is untouched.
 # Real audio device, real Web MIDI (the loopback ports show up here). It plays
-# out of the speakers: Brad wants to hear the work in progress (2026-10-15).
+# out of the speakers, so you can hear the work in progress.
 #   tools/win_chrome.sh            start it (returns once the debug port answers)
 #   tools/win_chrome.sh stop       close it
 set -euo pipefail
