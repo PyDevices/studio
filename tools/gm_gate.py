@@ -6,7 +6,7 @@ the module, offline, on each interpreter, and measured.
 
     python tools/gm_gate.py [--only cpython ...] [--songs FOLDER] [--plants]
 
-Run it under WSL, with numpy (the anchor's toolbox Python has it). Two
+Run it under WSL, with numpy installed. Two
 kinds of song:
 
 * The gate's own (``tools/gm_songs.py``), on a sine bank: the pitch of

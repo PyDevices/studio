@@ -1,7 +1,7 @@
 // A fake Web MIDI keyboard, installed by Playwright before the page loads.
 //
 // It replaces navigator.requestMIDIAccess with one input and one output
-// named like Brad's Donner DMK-25 PRO. Everything above the operating
+// named like a Donner DMK-25 PRO. Everything above the operating
 // system runs unchanged: the page's onmidimessage handler gets MIDIMessage-
 // like events whose timeStamp is when the key was "pressed", and they're
 // dispatched on the page's event loop like real ones, so a busy page delays

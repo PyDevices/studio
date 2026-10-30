@@ -3,7 +3,7 @@ beside them, and a song to start with.
 
     python tools/vamp_files.py DEVICE [--hmilink DIR] [--song FILE]
 
-DEVICE is what mpftp takes (COM4, ws://192.168.1.50). Then, on the board::
+DEVICE is what mpftp takes (COM4, ws://<board-address>). Then, on the board::
 
     import vamp; vamp.run()
 
