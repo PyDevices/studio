@@ -32,7 +32,9 @@ sys.path.insert(0, _sep.join((_dir, "..", "lib")))
 from soundmodule import engine, pipes, run  # noqa: E402
 
 PLANTS = ("bank-ignored", "lsb-ignored", "eager-bank", "macro-shift", "level-linear", "identity-wrong",
-          "identity-any-device", "tally-final", "pipe-drops-peek", "frames-miscounted")
+          "identity-any-device", "tally-final", "pipe-drops-peek", "frames-miscounted",
+          "rpn-ignored", "rpn-null-ignored", "rpn-lsb-kept", "reset-keeps-bend", "reset-keeps-expression",
+          "fixed-range-unscaled", "reset-keeps-rpn", "volume-as-macro", "sends-last-wins")
 
 RESULTS = [0, 0]
 
@@ -79,6 +81,7 @@ class Fake:
         self.notes = []
         self.output = object()
         self.ccs = []
+        self.bends = []
 
     def set_macro(self, i, value):
         self.macros[i] = value
@@ -99,7 +102,7 @@ class Fake:
         pass
 
     def pitch_bend(self, value):
-        pass
+        self.bends.append(value)
 
     def control_change(self, cc, value):
         self.ccs.append((cc, value))
@@ -108,11 +111,24 @@ class Fake:
         pass
 
 
-def module(**kw):
+class Tunable(Fake):
+    """A SoundFont stand-in with ``soundfont``'s ``bend_range`` and ``tuning``."""
+
+    def __init__(self, name):
+        Fake.__init__(self, name)
+        self.bend_range = 2.0
+        self.tuning = 0.0
+
+    def reset(self):
+        self.bend_range = 2.0
+        self.tuning = 0.0
+
+
+def module(tunable=False, **kw):
     made = []
 
     def create(name, rate, channels, bank, pool=None):
-        inst = Fake(name)
+        inst = Tunable(name) if tunable and name in (engine.MELODIC, engine.DRUMS) else Fake(name)
         made.append(inst)
         return inst
 
@@ -193,6 +209,14 @@ def check_volume_pan():
     check("CC10 pans it", abs(voice.panning + 1.0) < 1e-6, repr(voice.panning))
 
 
+def check_soundfont_volume():
+    m, made = module()
+    m.feed(bytes((0x90, 60, 100, 0xB0, 7, 50)))
+    inst = m.parts[0].inst
+    check("CC7 reaches a SoundFont part as CC7, for its square law", (7, 50) in inst.ccs and 0 not in inst.macros,
+          "ccs %r, macros %r" % (inst.ccs, inst.macros))
+
+
 def check_identity():
     replies = []
     m, made = module(send=replies.append)
@@ -215,6 +239,94 @@ def check_tally():
     text = "\n".join(lines)
     check("the report says what played, not what the bank was left at",
           "2 notes, bank 80:0 program 14, juno106" in text, text)
+
+
+def rpn(m, channel, msb, lsb, *data):
+    """Select RPN (msb, lsb) on ``channel`` and send ``data`` as (cc, value) pairs."""
+    out = [0xB0 | channel, 101, msb, 100, lsb]
+    for cc, value in data:
+        out += [cc, value]
+    m.feed(bytes(out))
+
+
+def check_rpn():
+    m, made = module(tunable=True)
+    m.feed(bytes((0x90, 60, 100)))
+    inst = m.parts[0].inst
+    rpn(m, 0, 0, 0, (6, 12))
+    check("RPN 0 sets the bend range", inst.bend_range == 12, repr(inst.bend_range))
+    m.feed(bytes((0xB0, 38, 50)))
+    check("Data Entry LSB adds cents", abs(inst.bend_range - 12.5) < 1e-9, repr(inst.bend_range))
+    m.feed(bytes((0xB0, 96, 0)))
+    check("Increment steps it a semitone", abs(inst.bend_range - 13.5) < 1e-9, repr(inst.bend_range))
+    rpn(m, 0, 127, 127, (6, 5))
+    check("after RPN null, Data Entry changes nothing", abs(inst.bend_range - 13.5) < 1e-9,
+          repr(inst.bend_range))
+    m.feed(bytes((0xB0, 99, 0, 0xB0, 98, 0, 0xB0, 6, 3)))
+    check("nor after an NRPN", abs(inst.bend_range - 13.5) < 1e-9, repr(inst.bend_range))
+    rpn(m, 0, 0, 2, (6, 66))
+    rpn(m, 0, 0, 1, (6, 96), (38, 0))
+    check("RPN 2 and RPN 1 tune the part: +2 semitones and +50 cents", abs(inst.tuning - 2.5) < 1e-9,
+          repr(inst.tuning))
+    m.feed(bytes((0xB0, 97, 0)))
+    check("Decrement of fine tuning is one 14-bit step", abs(inst.tuning - (2.5 - 1 / 8192.0)) < 1e-9,
+          repr(inst.tuning))
+    rpn(m, 0, 0, 0, (6, 40))
+    check("the bend range stops at 24", inst.bend_range == 24, repr(inst.bend_range))
+    rpn(m, 0, 0, 0, (6, 12))
+    m.feed(bytes((0xB0, 121, 0, 0xB0, 6, 2)))
+    check("Reset All Controllers keeps the range and nulls the RPN", inst.bend_range == 12,
+          repr(inst.bend_range))
+    rpn(m, 1, 0, 0, (6, 7))
+    m.feed(bytes((0x91, 60, 100)))
+    check("each part has its own", m.parts[1].inst.bend_range == 7 and inst.bend_range == 12,
+          "%r %r" % (m.parts[1].inst.bend_range, inst.bend_range))
+    m.feed(bytes((0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7)))
+    check("GM System On puts the range and tuning back", inst.bend_range == 2 and inst.tuning == 0,
+          "%r %r" % (inst.bend_range, inst.tuning))
+
+
+def check_fixed_range():
+    m, made = module()
+    m.feed(bytes((0x90, 60, 100)))
+    inst = m.parts[0].inst
+    rpn(m, 0, 0, 0, (6, 1))
+    m.feed(bytes((0xE0, 0x7F, 0x7F)))
+    want = 8192 + 8191 // 2
+    check("a fixed two-semitone instrument gets a one-semitone range's bend scaled", inst.bends[-1] == want,
+          "%r, not %r" % (inst.bends[-1:], want))
+
+
+def check_resets():
+    m, made = module(tunable=True)
+    m.feed(bytes((0x90, 60, 100, 0xE0, 0, 0x60, 0xB0, 11, 20)))
+    inst = m.parts[0].inst
+    m.feed(bytes((0xB0, 121, 0)))
+    check("Reset All Controllers puts Expression back to 127", (11, 127) in inst.ccs, repr(inst.ccs))
+    m.feed(bytes((0xE0, 0, 0x60)))
+    inst.bends = []
+    m.feed(bytes((0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7)))
+    check("GM System On centres the instrument's bend", inst.bends[-1:] == [8192], repr(inst.bends))
+    m.feed(bytes((0xE0, 0, 0x60)))
+    inst.bends = []
+    m.feed(bytes((0xB0, 120, 0)))
+    check("All Sound Off sends the bend again", inst.bends[-1:] == [0x60 << 7], repr(inst.bends))
+
+
+def check_sends():
+    m, made = module()
+    check("the power-on reverb is GM's 40", m.reverb_level == 40, "%d" % m.reverb_level)
+    # Two parts in use: one sends 100 to the reverb, then one sends 0.
+    m.feed(bytes((0x90, 60, 100, 0x91, 60, 100, 0xB0, 91, 100, 0xB1, 91, 0, 0xB0, 93, 64)))
+    check("the master reverb is the parts' mean, not the last send", m.reverb_level == 50,
+          "%d" % m.reverb_level)
+    check("the master chorus is the parts' mean", m.chorus_level == 32, "%d" % m.chorus_level)
+    # A part that never plays doesn't pull the level down.
+    m.feed(bytes((0xB5, 91, 0)))
+    check("a part not in use doesn't count", m.reverb_level == 50, "%d" % m.reverb_level)
+    m.feed(bytes((0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7)))
+    check("GM System On puts the sends back", (m.reverb_level, m.chorus_level) == (40, 0),
+          "%d %d" % (m.reverb_level, m.chorus_level))
 
 
 def check_pipes(tmp):
@@ -341,6 +453,91 @@ def plant(name):
             return old(self, buf, nbytes)
 
         pipes.FileIn.readinto = readinto
+    elif name == "volume-as-macro":
+        old = M.control
+
+        def control(self, part, cc, value):
+            if cc == engine.CC_VOLUME and part.inst_name in (engine.MELODIC, engine.DRUMS):
+                part.volume = value
+                part.inst.set_macro(engine.VOLUME_MACRO, value)
+                return
+            old(self, part, cc, value)
+
+        M.control = control
+    elif name == "sends-last-wins":
+        old = M.control
+
+        def control(self, part, cc, value):
+            old(self, part, cc, value)
+            if cc == engine.CC_REVERB:
+                self.set_reverb(value)
+            elif cc == engine.CC_CHORUS:
+                self.set_chorus(value)
+
+        M.control = control
+    elif name == "rpn-ignored":
+        M.data_entry = lambda self, part, cc, value: None
+    elif name == "rpn-null-ignored":
+        old = M.control
+
+        def control(self, part, cc, value):
+            if cc in (engine.CC_RPN_MSB, engine.CC_RPN_LSB) and value == 127:
+                return
+            if cc in (engine.CC_NRPN_MSB, engine.CC_NRPN_LSB):
+                return
+            old(self, part, cc, value)
+
+        M.control = control
+    elif name == "rpn-lsb-kept":
+        old = M.data_entry
+
+        def data_entry(self, part, cc, value):
+            if cc == engine.CC_DATA_MSB and part.rpn in part.params:
+                part.params[part.rpn] = (value << 7) | (part.params[part.rpn] & 0x7F)
+                self._tune(part)
+                return
+            old(self, part, cc, value)
+
+        M.data_entry = data_entry
+    elif name == "reset-keeps-bend":
+        old = M._apply
+
+        def _apply(self, part):
+            bend = part.bend
+            part.bend = engine.BEND_CENTER
+            inst = part.inst
+            if inst is not None:
+                inst.pitch_bend = lambda v: None
+            old(self, part)
+            if inst is not None:
+                del inst.pitch_bend
+                if bend != engine.BEND_CENTER:
+                    inst.pitch_bend(bend)
+            part.bend = bend
+
+        M._apply = _apply
+    elif name == "reset-keeps-expression":
+        def reset_controllers(self, part):
+            part.sustain = False
+            self._release_sustained(part)
+            part.bend = engine.BEND_CENTER
+            part.rpn = engine.RPN_NULL
+            if part.inst is not None:
+                part.inst.pitch_bend(engine.BEND_CENTER)
+
+        M.reset_controllers = reset_controllers
+    elif name == "fixed-range-unscaled":
+        M._wheel = lambda self, part: part.bend
+    elif name == "reset-keeps-rpn":
+        old = engine.Part.reset
+
+        def reset(self):
+            params = getattr(self, "params", None)
+            old(self)
+            if params is not None:
+                self.params = params
+
+        engine.Part.reset = reset
     elif name == "frames-miscounted":
         run._frames = lambda data: len(data) // 8
     else:
@@ -362,8 +559,13 @@ def main(argv):
     check_bank_waits_for_program()
     check_macro_ccs()
     check_volume_pan()
+    check_soundfont_volume()
     check_identity()
     check_tally()
+    check_rpn()
+    check_fixed_range()
+    check_resets()
+    check_sends()
     check_pipes(tmp)
     check_real(tmp)
     print("%d passed, %d failed" % (RESULTS[0], RESULTS[1]))

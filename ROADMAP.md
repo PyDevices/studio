@@ -12,3 +12,6 @@ It grows one part at a time, on the desktop interpreters first.
   controls, shaped after MIDI-CI Property Exchange.
 - On an ESP32-P4 as a USB MIDI device, with 24 voices at 48 kHz stereo.
 - Over BLE MIDI.
+- Reverb and chorus as true sends per channel, once the sampler can mix its
+  voices into a send bus. Today CC91 and CC93 set one master level, the mean
+  of the channels in use.
