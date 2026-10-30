@@ -1,0 +1,16 @@
+# Keep pinned GitHub Actions current. Nothing else here is managed by
+# Dependabot: the Python stack is pinned in wheels.json and scripts/fetch_midi.py,
+# which it doesn't read.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "ci"
+    open-pull-requests-limit: 3

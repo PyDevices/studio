@@ -1,12 +1,20 @@
 # studio
 
-Music applications built on the PyDevices audio and MIDI stack. Each one runs
-on CPython, MicroPython and CircuitPython, on the desktop and on boards.
+Music applications built on the PyDevices audio and MIDI stack, on the
+desktop and on boards:
 
-They're built from libraries kept elsewhere: `midiports` (in `pydevices`) for
-MIDI transports, Adafruit's `adafruit_midi` for MIDI messages, `audiodsp` for
+- **soundmodule** plays whatever a DAW, sequencer or keyboard sends it over
+  MIDI, like a hardware tone module.
+- **Ostinato** is a pattern sequencer and song editor that runs in the
+  browser, installable as an app, and as a desktop window.
+- **Vamp** plays Ostinato's songs on a board with no screen of its own: the
+  window and a browser page are its panels, over the network.
+
+They're built from libraries kept elsewhere: `midiports` and `hmilink` (in
+`pydevices`) for MIDI transports and the link between a device and its panels, Adafruit's `adafruit_midi` for MIDI messages, `audiodsp` for
 the DSP kernels, and `audiocomponents` for the instruments and effects. When two applications
-need the same piece, that piece moves down into one of those libraries.
+need the same piece, that piece moves down: into `lib/` here when it's about
+songs, or into one of those libraries.
 
 Nothing here is settled yet: names, APIs and layout may all change.
 
@@ -41,12 +49,75 @@ docstrings, in [`lib/soundmodule/engine.py`](lib/soundmodule/engine.py) and
 
 midiEngine, the DEV-KIT's GM player, is a face on this engine.
 
+## Ostinato
+
+Ostinato lives in [`apps/ostinato`](apps/ostinato), and every command in its
+[README](apps/ostinato/README.md) runs from that folder. It shares the song
+model with Vamp through [`lib/songlink`](lib/songlink): the song as plain
+data, the edits panels send each other, and the browser panel's page.
+
+To run it in your browser, vendor PyScript once and serve the folder:
+
+    cd apps/ostinato
+    ./scripts/vendor_pyscript.sh
+    python tools/serve.py
+
+then open `http://127.0.0.1:8765/` and install it from the address bar if you
+want it as an app. The server also serves `lib/songlink` from this repository,
+which the page loads.
+
+## Vamp
+
+Vamp is the sound and the song on one MicroPython, an ESP32-P4 DEV-KIT or a
+desktop interpreter, with the screens somewhere else. Ostinato's window and a
+browser page edit the song it plays, live, over
+[hmilink](https://github.com/PyDevices/pydevices/tree/main/hmilink); a MIDI
+keyboard on the board plays the selected track.
+
+To put it on a board, with mpftp installed and the board's port or address:
+
+    python tools/vamp_files.py COM4
+
+That copies `vamp`, `songlink` and `hmilink` into `/lib` and a song to
+`/vamp/song.json`. A GM SoundFont goes on the SD card at
+`/sd/soundfonts/GeneralUser-GS.sf2`. Then, on the board:
+
+    import vamp; vamp.run()
+
+On desktop MicroPython, with studio's `lib/`, hmilink, audiocomponents' `lib/`
+and pydevices' `lib/` on `MICROPYPATH`:
+
+    micropython -X heapsize=96M -m vamp.main --bank GeneralUser-GS.sf2 --song apps/ostinato/songs/sketches/soundfont_check.json
+
+Open `http://HOST:9100/` for the browser panel, or join with the window from
+`apps/ostinato`:
+
+    python -m ostinato --connect HOST:9100
+
+Every panel sees the same song, and an edit on one shows on the others while
+the box keeps playing. [`lib/vamp/main.py`](lib/vamp/main.py) lists the rest
+of the options.
+
 ## Tests
 
     python -m unittest discover -s tests
 
 runs [`tests/engine_contract.py`](tests/engine_contract.py) on CPython, unix
-MicroPython and unix CircuitPython, and once per planted fault.
+MicroPython and unix CircuitPython, and once per planted fault. It runs Vamp's
+checks too, on CPython and unix MicroPython, on a small bank it writes itself:
+[`tests/vamp_check.py`](tests/vamp_check.py) for the engine's timing, mutes,
+chokes and effects, and [`tests/vamp_link_contract.py`](tests/vamp_link_contract.py)
+for two panels editing a playing box. Each has faults planted to prove it
+catches them. hmilink comes from `$HMILINK_PATH` or a pydevices checkout beside
+this one.
+
+Ostinato's own tests run from its folder:
+
+    cd apps/ostinato && python -m unittest discover -s tests
+
+[`tools/vamp_link_check.py`](tools/vamp_link_check.py) drives a running box,
+on a board or the desktop, the way a panel does, and with `--browser` drives
+its page in Chromium too.
 
 [`tools/gate.py`](tools/gate.py) is the end-to-end check, run under WSL with
 REAPER on Windows: REAPER plays a five-part song

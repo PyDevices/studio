@@ -1,0 +1,12 @@
+{
+  "name": "DMK-25 PRO",
+  "source": "Donner DMK-25 PRO user manual V01, Assignable Unit List p.12 and front panel pp.3-4 (personal copy of both revisions; the table is identical)",
+  "keys": {"channel": 1, "count": 25, "lowest_note": 48, "lowest_note_source": "assumed (octave 0, C3 = 48); not stated in the manual"},
+  "pads": {"channel": 10, "banks": {"A": [36, 37, 38, 39, 40, 41, 42, 43], "B": [44, 45, 46, 47, 48, 49, 50, 51], "C": [52, 53, 54, 55, 56, 57, 58, 59]}},
+  "knobs": {"channel": 1, "banks": {"A": [30, 31, 32, 33], "B": [34, 35, 36, 37], "C": [38, 39, 40, 41]}},
+  "sliders": {"cc": 7, "banks": {"A": [1, 2, 3, 4], "B": [5, 6, 7, 8], "C": [9, 10, 11, 12]}, "note": "channel per slider; the manual gives the range 1-12, read in order"},
+  "pitch_bar": {"channel": 1, "message": "pitch_bend"},
+  "mod_bar": {"channel": 1, "cc": 1},
+  "pedal": {"channel": 1, "cc": 64},
+  "transport": {"channel": 1, "cc": {"loop": 15, "rewind": 16, "fast_forward": 17, "stop": 18, "play": 19, "rec": 20}, "note": "the manual gives the range 15-20 and the buttons' order; per-button values are read in order"}
+}

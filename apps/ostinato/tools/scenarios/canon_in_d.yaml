@@ -1,0 +1,158 @@
+# Canon in D - Pachelbel, the opening, for three voices over a ground.
+#
+# This piece is why the format exists. Pachelbel wrote one melody and had three
+# violins play it four bars apart over a bass that never changes. So the file is
+# one `ground` cell, four melody cells, and three tracks whose `play` lists are
+# identical apart from the bar they start on. Compare Violin I, II and III
+# below - same four patterns, same order, four bars apart. That is the canon,
+# written down as the thing it actually is.
+#
+# The ground and variation 1 are Pachelbel's. The two after them are idiomatic
+# divisions of that line rather than literal transcription: the structure is
+# exact, the later figuration is an arrangement.
+#
+# In D major, degree 1 is D:  1=D  2=E  3=F#  4=G  5=A  6=B  7=C#
+
+title: Canon in D
+tempo: 64
+key: D
+scale: major
+
+patterns:
+
+  # D A B F# G D G A - one chord every two beats, four bars round.
+  ground:
+    - [ 0.0, 1.9, 1, 2]
+    - [ 2.0, 1.9, 5, 2]
+    - [ 4.0, 1.9, 6, 2]
+    - [ 6.0, 1.9, 3, 2]
+    - [ 8.0, 1.9, 4, 2]
+    - [10.0, 1.9, 1, 2]
+    - [12.0, 1.9, 4, 2]
+    - [14.0, 1.9, 5, 2]
+
+  # Variation 1 - the tune everyone knows. One half note per chord.
+  var_1:
+    - [ 0.0, 1.9, 3, 5]
+    - [ 2.0, 1.9, 2, 5]
+    - [ 4.0, 1.9, 1, 5]
+    - [ 6.0, 1.9, 7, 4]
+    - [ 8.0, 1.9, 6, 4]
+    - [10.0, 1.9, 5, 4]
+    - [12.0, 1.9, 6, 4]
+    - [14.0, 1.9, 7, 4]
+
+  # Variation 2 - quarter notes, two to a chord.
+  var_2:
+    - [ 0.0, 0.9, 3, 5]
+    - [ 1.0, 0.9, 5, 5]
+    - [ 2.0, 0.9, 2, 5]
+    - [ 3.0, 0.9, 3, 5]
+    - [ 4.0, 0.9, 1, 5]
+    - [ 5.0, 0.9, 3, 5]
+    - [ 6.0, 0.9, 7, 4]
+    - [ 7.0, 0.9, 2, 5]
+    - [ 8.0, 0.9, 6, 4]
+    - [ 9.0, 0.9, 1, 5]
+    - [10.0, 0.9, 5, 4]
+    - [11.0, 0.9, 6, 4]
+    - [12.0, 0.9, 6, 4]
+    - [13.0, 0.9, 1, 5]
+    - [14.0, 0.9, 7, 4]
+    - [15.0, 0.9, 2, 5]
+
+  # Variation 3 - eighth notes: variation 1 with its steps filled in.
+  var_3:
+    - [ 0.0, 0.45, 3, 5]
+    - [ 0.5, 0.45, 4, 5]
+    - [ 1.0, 0.45, 3, 5]
+    - [ 1.5, 0.45, 2, 5]
+    - [ 2.0, 0.45, 2, 5]
+    - [ 2.5, 0.45, 3, 5]
+    - [ 3.0, 0.45, 2, 5]
+    - [ 3.5, 0.45, 1, 5]
+    - [ 4.0, 0.45, 1, 5]
+    - [ 4.5, 0.45, 2, 5]
+    - [ 5.0, 0.45, 1, 5]
+    - [ 5.5, 0.45, 7, 4]
+    - [ 6.0, 0.45, 7, 4]
+    - [ 6.5, 0.45, 1, 5]
+    - [ 7.0, 0.45, 7, 4]
+    - [ 7.5, 0.45, 6, 4]
+    - [ 8.0, 0.45, 6, 4]
+    - [ 8.5, 0.45, 7, 4]
+    - [ 9.0, 0.45, 6, 4]
+    - [ 9.5, 0.45, 5, 4]
+    - [10.0, 0.45, 5, 4]
+    - [10.5, 0.45, 6, 4]
+    - [11.0, 0.45, 5, 4]
+    - [11.5, 0.45, 4, 4]
+    - [12.0, 0.45, 6, 4]
+    - [12.5, 0.45, 5, 4]
+    - [13.0, 0.45, 6, 4]
+    - [13.5, 0.45, 7, 4]
+    - [14.0, 0.45, 7, 4]
+    - [14.5, 0.45, 6, 4]
+    - [15.0, 0.45, 7, 4]
+    - [15.5, 0.45, 1, 5]
+
+  # Variation 4 - the tune again, an octave up, to close.
+  var_4:
+    - [ 0.0, 1.9, 3, 6]
+    - [ 2.0, 1.9, 2, 6]
+    - [ 4.0, 1.9, 1, 6]
+    - [ 6.0, 1.9, 7, 5]
+    - [ 8.0, 1.9, 6, 5]
+    - [10.0, 1.9, 5, 5]
+    - [12.0, 1.9, 6, 5]
+    - [14.0, 1.9, 7, 5]
+
+aux_tracks:
+  - name: Chapel
+    effect: Reverb
+    patch: Concert Hall
+    mix: 2.0
+
+tracks:
+
+  - name: Ground
+    instrument: mellotron
+    gain_db: 4.0
+    play:
+      - {bar: 1, pattern: ground, repeat: 8}
+
+  - name: Violin I
+    instrument: solina
+    gain_db: -2.0
+    pan: -0.35
+    sends: [{to: Chapel, level: 0.4}]
+    play:
+      - {bar: 5,  pattern: var_1}
+      - {bar: 9,  pattern: var_2}
+      - {bar: 13, pattern: var_3}
+      - {bar: 17, pattern: var_4}
+
+  - name: Violin II
+    instrument: solina
+    gain_db: -3.0
+    sends: [{to: Chapel, level: 0.4}]
+    play:
+      - {bar: 9,  pattern: var_1}
+      - {bar: 13, pattern: var_2}
+      - {bar: 17, pattern: var_3}
+      - {bar: 21, pattern: var_4}
+
+  - name: Violin III
+    instrument: solina
+    gain_db: -3.0
+    pan: 0.35
+    sends: [{to: Chapel, level: 0.4}]
+    play:
+      - {bar: 13, pattern: var_1}
+      - {bar: 17, pattern: var_2}
+      - {bar: 21, pattern: var_3}
+      - {bar: 25, pattern: var_4}
+
+mix_bus:
+  ceiling_db: -2.0
+  gain_db: 5.0

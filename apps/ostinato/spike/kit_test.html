@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ostinato P1 kit check</title>
+  <style>html, body { margin: 0; height: 100%; overflow: hidden; background: #101418; } canvas { display: block; width: 100vw; height: 100vh; }</style>
+</head>
+<body>
+  <canvas id="display_canvas"></canvas>
+  <script type="module">
+    import { startWorker } from "../workers/host.js";
+    import cfg from "./kit_config.js";
+    const canvas = document.getElementById("display_canvas");
+    canvas.width = innerWidth; canvas.height = innerHeight;
+    const ui = startWorker({ name: "ui", main: "kit_ui", canvas, ...cfg });
+    window.__ui = ui;
+    ui.ready.then((m) => { window.__pageReady = true; window.__readyMs = m.ms; })
+      .catch((e) => { window.__pageError = String(e); });
+  </script>
+</body>
+</html>

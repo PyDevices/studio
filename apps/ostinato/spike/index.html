@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ostinato P0 spike</title>
+  <link rel="stylesheet" href="../vendor/pyscript/core.css">
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #101418; color: #ddd; font: 13px sans-serif; }
+    #display_canvas { display: block; }
+    #status { position: fixed; right: 8px; bottom: 6px; opacity: .7; }
+    #go { position: fixed; left: 8px; bottom: 6px; }
+  </style>
+  <script type="module" src="../vendor/pyscript/core.js"></script>
+  <script type="module" src="./host.js"></script>
+</head>
+<body>
+  <canvas id="display_canvas" tabindex="0"></canvas>
+  <button id="go">Start audio</button>
+  <output id="status">Loading Python…</output>
+  <script type="py" src="./page.py" config="./pyscript.json"></script>
+  <script type="module">
+    import spikeConfig from "./spike_config.js";
+    document.getElementById("go").onclick = async (e) => {
+      e.target.disabled = true;
+      const info = await window.__ostinato.start(spikeConfig);
+      e.target.textContent = "Audio on: " + (info.inputs.join(", ") || "no MIDI inputs");
+    };
+  </script>
+</body>
+</html>
