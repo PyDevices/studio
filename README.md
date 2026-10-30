@@ -79,7 +79,7 @@ To put it on a board, with mpftp installed and the board's port or address:
     python tools/vamp_files.py COM4
 
 That copies `vamp`, `songlink` and `hmilink` into `/lib` and a song to
-`/vamp/song.json`. A GM SoundFont goes on the SD card at
+`/vamp_song.json`. A GM SoundFont goes on the SD card at
 `/sd/soundfonts/GeneralUser-GS.sf2`. Then, on the board:
 
     import vamp; vamp.run()

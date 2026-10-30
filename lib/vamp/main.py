@@ -27,7 +27,7 @@ except AttributeError:
 
 DEFAULTS = {
     "bank": "/sd/soundfonts/GeneralUser-GS.sf2" if _BOARD else "GeneralUser-GS.sf2",
-    "song": "/vamp/song.json" if _BOARD else None,   # the box plays SoundFont tracks
+    "song": "/vamp_song.json" if _BOARD else None,   # the box plays SoundFont tracks
     "port": 9100,
     "midi": None,
     "lookahead_ms": 750,
