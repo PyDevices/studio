@@ -100,7 +100,7 @@ def command(name, args, song, wav, bank, plant=None):
     root = args.stage
     windows = name in ("cpython", "micropython-windows")
     p = win_path if windows else (lambda x: x)
-    tail = ["--bank", p(bank), "--path", p(os.path.join(root, "lib"))]
+    tail = ["--bank", p(bank), "--path", p(os.path.join(root, "lib")), "--tail", str(args.tail)]
     if plant:
         tail += ["--plant", plant]
     script = [p(os.path.join(root, "tools", "render_mid.py")), p(song), p(wav)] + tail
@@ -234,6 +234,8 @@ def main(argv=None):
     ap.add_argument("--micropython", default=None)
     ap.add_argument("--circuitpython", default=None)
     ap.add_argument("--heap", default="64M")
+    # A GM pad's release runs to seven seconds after its note-off.
+    ap.add_argument("--tail", type=float, default=10.0)
     ap.add_argument("--timeout", type=int, default=1200)
     ap.add_argument("--plants", action="store_true")
     ap.add_argument("--report", default=None, help="write the results as JSON here")
