@@ -1,0 +1,85 @@
+{
+ "probes": [
+  {
+   "kind": "level",
+   "t": [
+    1.5,
+    2.0
+   ],
+   "db": -12.041199826559248,
+   "what": "CC7 50"
+  },
+  {
+   "kind": "level",
+   "t": [
+    2.5,
+    3.0
+   ],
+   "db": -23.94614970544204,
+   "what": "CC7 50, CC11 64"
+  },
+  {
+   "kind": "level",
+   "t": [
+    3.5,
+    4.0
+   ],
+   "db": -12.041199826559248,
+   "what": "CC121: Expression back to 127, CC7 kept"
+  },
+  {
+   "kind": "level",
+   "t": [
+    4.5,
+    5.0
+   ],
+   "db": 0.0,
+   "what": "GM On: volume back to 100"
+  },
+  {
+   "kind": "silent",
+   "t": [
+    5.9,
+    6.3
+   ],
+   "what": "CC120 silences a held note"
+  },
+  {
+   "kind": "level",
+   "t": [
+    6.9,
+    7.2
+   ],
+   "db": 0.0,
+   "what": "the pedal holds the note"
+  },
+  {
+   "kind": "silent",
+   "t": [
+    7.4,
+    7.8
+   ],
+   "what": "CC121 lifts the pedal"
+  },
+  {
+   "kind": "silent",
+   "t": [
+    8.6,
+    9.0
+   ],
+   "what": "CC123 releases a held note"
+  },
+  {
+   "kind": "ringing",
+   "t": [
+    10.15,
+    10.45
+   ],
+   "what": "the reverb rings after a send of 127"
+  }
+ ],
+ "reference": [
+  0.5,
+  1.0
+ ]
+}
