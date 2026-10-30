@@ -1,3 +1,5 @@
+![Ostinato, studio's pattern sequencer, playing a four-bar drum pattern in its desktop window](docs/ostinato.png)
+
 studio is a set of music applications built on the PyDevices audio and MIDI stack, on the desktop and on boards: a sound module that plays whatever a DAW or keyboard sends it, Ostinato, a pattern sequencer and song editor in your browser, and Vamp, which plays Ostinato's songs on a board.
 
 ## Install
