@@ -59,6 +59,7 @@ module offline ([`tools/render_mid.py`](tools/render_mid.py)) on all four
 interpreters and measures the WAVs: the pitch of bent and tuned notes, levels
 after each reset, the reverb's tail, and that nothing is left sounding.
 Its own two songs come from [`tools/gm_songs.py`](tools/gm_songs.py), with a
-sine bank so a pitch reads straight off the WAV; `--songs FOLDER` adds
-ordinary GM files played on your own bank, and `--plants` shows each check
+sine bank so a pitch reads straight off the WAV. It also plays the ordinary
+GM files in [`tests/midi`](tests/midi/README.md) on your own bank
+(`--songs FOLDER` for others), and `--plants` shows each check
 fail on a fault planted for it.

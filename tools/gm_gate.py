@@ -14,7 +14,8 @@ kinds of song:
   Controllers and GM System On), and levels after CC7, CC11, CC121 and GM
   System On, each to the cent and the tenth of a dB, and silence after
   All Sound Off, All Notes Off and the pedal lifting.
-* Ordinary GM files from ``--songs`` (any ``*.mid``), on the GM bank
+* Ordinary GM files from ``--songs`` (any ``*.mid``; ``tests/midi`` by
+  default), on the GM bank
   (``--bank``, else ``$SOUNDFONT``, else the first in ``~/soundfonts``): every note
   played, no part holding a note at the end, no voice sounding after the
   tail, nothing raised, and the WAV silent at its end.
@@ -226,7 +227,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", nargs="+", choices=INTERPRETERS)
     ap.add_argument("--stage", default="/mnt/c/temp/soundmodule-p5/stage")
-    ap.add_argument("--songs", default=None, help="a folder of ordinary GM files")
+    ap.add_argument("--songs", default=os.path.join(REPO, "tests", "midi"), help="a folder of ordinary GM files")
     ap.add_argument("--bank", default=None)
     ap.add_argument("--audiocomponents", default=None)
     ap.add_argument("--venv-python", default="/mnt/c/temp/soundmodule-p5/venv/Scripts/python.exe")

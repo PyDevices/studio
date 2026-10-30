@@ -1,0 +1,102 @@
+{
+ "probes": [
+  {
+   "kind": "pitch",
+   "t": [
+    0.7,
+    1.4
+   ],
+   "hz": 441.0,
+   "what": "ch1 wheel centred"
+  },
+  {
+   "kind": "pitch",
+   "t": [
+    1.7,
+    2.4
+   ],
+   "hz": 881.9253747619931,
+   "what": "ch1 full up, range 12"
+  },
+  {
+   "kind": "pitch",
+   "t": [
+    2.7,
+    3.4
+   ],
+   "hz": 220.5,
+   "what": "ch1 full down, range 12"
+  },
+  {
+   "kind": "pitch",
+   "t": [
+    3.7,
+    4.4
+   ],
+   "hz": 441.0,
+   "what": "ch1 centred again"
+  },
+  {
+   "kind": "pitch",
+   "t": [
+    5.2,
+    5.9
+   ],
+   "hz": 680.1149740049019,
+   "what": "ch2 tuned +7.5 by RPN 2 and 1"
+  },
+  {
+   "kind": "pitch",
+   "t": [
+    6.6,
+    7.1
+   ],
+   "hz": 680.1149740049019,
+   "what": "ch2 after RPN null and a stray CC6"
+  },
+  {
+   "kind": "pitch",
+   "t": [
+    7.8,
+    8.3
+   ],
+   "hz": 330.37671045130827,
+   "what": "ch3 range 5 by Increment, full down"
+  },
+  {
+   "kind": "pitch",
+   "t": [
+    9.0,
+    9.5
+   ],
+   "hz": 110.25,
+   "what": "ch4 range 24 kept over CC121"
+  },
+  {
+   "kind": "pitch",
+   "t": [
+    10.5,
+    11.0
+   ],
+   "hz": 441.0,
+   "what": "ch1 after GM On: wheel centred"
+  },
+  {
+   "kind": "pitch",
+   "t": [
+    11.5,
+    12.0
+   ],
+   "hz": 441.0,
+   "what": "ch2 after GM On: tuning gone"
+  },
+  {
+   "kind": "silent",
+   "t": [
+    12.4,
+    13.0
+   ],
+   "what": "nothing left sounding"
+  }
+ ]
+}
