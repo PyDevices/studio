@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ostinato P0 spike, LVGL in a worker</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #101418; }
+    canvas { display: block; }
+  </style>
+  <script type="module" src="./host.js"></script>
+</head>
+<body>
+  <canvas id="display_canvas"></canvas>
+  <script type="module">
+    // The page keeps nothing but Web MIDI (host.js) and this hand-off.
+    import cfg from "./spike_config.js";
+    const canvas = document.getElementById("display_canvas");
+    const w = innerWidth, h = innerHeight;
+    canvas.width = w; canvas.height = h;
+    const off = canvas.transferControlToOffscreen();
+    const ui = new Worker(new URL("./ui_worker.js", import.meta.url), { type: "module" });
+    ui.onerror = (e) => { window.__pageError = e.message || "ui worker failed to load"; console.error("ui worker: " + window.__pageError); };
+    let frames = { frames: 0, passes: [], ticks: [] };
+    ui.onmessage = (e) => {
+      if (e.data.type === "ready") window.__pageReady = true;
+      else if (e.data.type === "error") { window.__pageError = e.data.error; console.error("ui worker: " + e.data.error); }
+      else if (e.data.type === "frames") frames = e.data;
+    };
+    ui.postMessage({ type: "init", canvas: off, width: w, height: h, base: new URL("../", import.meta.url).href,
+                     lvglWheel: cfg.lvglWheel }, [off]);
+    let level = 0;
+    Object.defineProperty(window, "__stress", {
+      get: () => level, set: (v) => { level = v; ui.postMessage({ type: "stress", level: v }); } });
+    setInterval(() => ui.postMessage({ type: "take" }), 1000);
+    Object.defineProperty(window, "__pageFrameMs", { get: () => frames.ticks.map((x) => x.toFixed(2)).join(",") });
+    Object.defineProperty(window, "__uiHeapMB", { get: () => frames.heapMB });
+    Object.defineProperty(window, "__lvPassMs", { get: () => frames.passes.map((x) => x.toFixed(1)).join(",") });
+  </script>
+</body>
+</html>

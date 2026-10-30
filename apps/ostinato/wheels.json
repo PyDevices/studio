@@ -1,0 +1,27 @@
+{
+  "pydevices": {
+    "version": "0.7.7.dev1",
+    "file": "pydevices-0.7.7.dev1-py3-none-any.whl",
+    "sha256": "c8abc1b0e79ec00b593847011172dbf0ad22dffe5bb3539a28d2d49cc608eb26"
+  },
+  "pydevices-audiodsp": {
+    "version": "0.6.8.dev4",
+    "file": "pydevices_audiodsp-0.6.8.dev4-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+    "sha256": "e0d85c14e03ab9170437cec90b06b1349145e78ec71ac7b31df828a7bacf2410"
+  },
+  "pydevices-lvgl": {
+    "version": "9.5.52",
+    "file": "pydevices_lvgl-9.5.52-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+    "sha256": "6931367bbd325883560f55bc72e82c0375970b283663595b5d09ec814aaf00a5"
+  },
+  "pydevices-audioinstruments": {
+    "version": "0.4.1.dev3",
+    "file": "pydevices_audioinstruments-0.4.1.dev3-py3-none-any.whl",
+    "sha256": "692d49dc8a45732c4ed5ba4d3dc8daebe25712a03b9bb72bfea0429f98bbd613"
+  },
+  "pydevices-audioeffects": {
+    "version": "0.4.1.dev3",
+    "file": "pydevices_audioeffects-0.4.1.dev3-py3-none-any.whl",
+    "sha256": "e32eb49b10a4da785ae109095fbca99c553d1c7a9b7f95fc02847376aab124a1"
+  }
+}

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ostinato</title>
+<!--
+  The song page the Ostinato device serves (desktop/device.py). It is one
+  hmilink panel: it opens ws://<device>/ws, takes the song, and sends every
+  edit as a JSON Patch op. It applies an op only when the device sends it back
+  numbered, so it always has the device's order; a gap in the numbers means a
+  frame went missing or came late, and it asks for the whole song again.
+-->
+<style>
+:root { --bg:#16181d; --panel:#1f2229; --line:#2c3039; --fg:#e6e6e6; --dim:#8a8f99; --on:#f0a030; --beat:#262a33; --play:#3fb950; }
+@media (prefers-color-scheme: light) { :root { --bg:#f4f4f2; --panel:#fff; --line:#d8d8d4; --fg:#1d1d1d; --dim:#6b6b6b; --beat:#ececea; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui, sans-serif; }
+header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:12px 16px; background:var(--panel); border-bottom:1px solid var(--line); }
+header h1 { font-size:16px; margin:0 8px 0 0; }
+button { background:var(--beat); color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:6px 12px; font:inherit; cursor:pointer; }
+button.on { background:var(--play); color:#000; }
+label { color:var(--dim); display:flex; gap:6px; align-items:center; }
+input[type=number] { width:64px; background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:4px; padding:4px; font:inherit; }
+main { padding:12px 16px; display:grid; gap:16px; }
+.tracks { display:grid; gap:6px; }
+.track { display:grid; grid-template-columns: minmax(90px,1fr) auto minmax(80px,2fr); gap:10px; align-items:center; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:6px 10px; cursor:pointer; }
+.track.sel { border-color:var(--on); }
+.track small { color:var(--dim); display:block; }
+.grid { overflow-x:auto; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px; }
+.row { display:flex; gap:2px; margin-bottom:2px; align-items:center; }
+.row span { width:40px; flex:none; color:var(--dim); font-size:12px; }
+.cell { width:22px; height:22px; flex:none; border-radius:3px; background:var(--beat); border:1px solid var(--line); cursor:pointer; padding:0; }
+.cell.bar { margin-left:6px; }
+.cell.on { background:var(--on); }
+.cell.head { outline:2px solid var(--play); }
+#status { color:var(--dim); font-size:12px; margin-left:auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="name">Ostinato</h1>
+  <button id="play">Play</button>
+  <label>Tempo <input id="tempo" type="number" min="40" max="240" step="1"></label>
+  <label>Swing <input id="swing" type="number" min="0" max="100" step="1"></label>
+  <span id="status">connecting</span>
+</header>
+<main>
+  <div class="tracks" id="tracks"></div>
+  <div class="grid" id="grid"></div>
+  <div id="samples" style="color:var(--dim);font-size:12px"></div>
+</main>
+<script>
+"use strict";
+const DRUMS = [[49, "crash"], [46, "open hat"], [42, "hat"], [39, "clap"], [38, "snare"], [36, "kick"]];
+const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const MELODIC = []; for (let p = 60; p >= 36; p--) MELODIC.push([p, NAMES[p % 12] + (Math.floor(p / 12) - 1)]);
+
+let ws = null, doc = null, desc = {}, seq = 0, me = null, nextId = 1;
+let sel = 0, playing = false, tick = null, syncing = false;
+const stats = { ops: 0, resyncs: 0, order: 0 };
+window.ostinato = { stats, get doc() { return doc; }, get seq() { return seq; }, send, command, get ready() { return doc !== null && !syncing; } };
+
+function connect() {
+  ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+  ws.onopen = () => { ws.send(JSON.stringify({ t: "hello", v: 1 })); status("connected"); };
+  ws.onmessage = (e) => { for (const line of String(e.data).split("\n")) if (line.trim()) handle(JSON.parse(line)); };
+  ws.onclose = () => { status("the device went away; trying again"); doc = null; setTimeout(connect, 1000); };
+}
+
+function status(s) { document.getElementById("status").textContent = s; }
+
+function handle(m) {
+  if (m.t === "doc") {
+    doc = m.doc; desc = m.desc || {}; seq = m.seq; me = m.you; syncing = false;
+    if (sel >= doc.tracks.length) sel = 0;
+    render();
+  } else if (m.t === "op") {
+    if (doc === null || syncing) return;
+    if (m.seq !== seq + 1) {
+      // Not the next op: something was lost or came out of order. Take the
+      // whole song again rather than guess.
+      stats.order++; stats.resyncs++; syncing = true;
+      status("op " + m.seq + " came after " + seq + "; taking the song again");
+      ws.send(JSON.stringify({ t: "sync" }));
+      return;
+    }
+    seq = m.seq; stats.ops++;
+    apply(doc, m);
+    render();
+  } else if (m.t === "tele") {
+    const v = m.v || {};
+    playing = !!v.playing; tick = v.tick;
+    showTransport(); showHead();
+  } else if (m.t === "ev") {
+    if (m.name === "transport") { playing = !!m.playing; showTransport(); }
+    else if (m.name === "samples") { desc.samples = m.cost; showSamples(); }
+  } else if (m.t === "err") {
+    status("the device said no: " + m.msg);
+  }
+}
+
+// -- JSON Patch, the three ops hmilink uses --
+function split(p) { return p.split("/").slice(1).map((k) => k.replace(/~1/g, "/").replace(/~0/g, "~")); }
+function apply(root, op) {
+  const keys = split(op.path), last = keys.pop();
+  let node = root;
+  for (const k of keys) node = node[Array.isArray(node) ? +k : k];
+  if (Array.isArray(node)) {
+    if (op.op === "add") { if (last === "-") node.push(op.value); else node.splice(+last, 0, op.value); }
+    else if (op.op === "remove") node.splice(+last, 1);
+    else node[+last] = op.value;
+  } else if (op.op === "remove") delete node[last];
+  else node[last] = op.value;
+}
+
+function send(op, path, value) {
+  const m = { t: "op", op, path, id: nextId++ };
+  if (op !== "remove") m.value = value;
+  ws.send(JSON.stringify(m));
+}
+function command(name, args) { ws.send(JSON.stringify({ t: "cmd", name, args: Object.assign({ by: me }, args || {}) })); }
+
+// -- the page --
+function render() {
+  document.getElementById("name").textContent = doc.name || "Ostinato";
+  for (const k of ["tempo", "swing"]) {
+    const el = document.getElementById(k);
+    if (document.activeElement !== el) el.value = Math.round(doc[k]);
+  }
+  const box = document.getElementById("tracks");
+  box.textContent = "";
+  doc.tracks.forEach((t, i) => {
+    const row = document.createElement("div");
+    row.className = "track" + (i === sel ? " sel" : "");
+    row.dataset.track = i;
+    row.innerHTML = "<div><b></b><small></small></div>";
+    row.querySelector("b").textContent = t.name;
+    row.querySelector("small").textContent = t.instrument + (t.instrument.startsWith("soundfont") ? " " + t.patch : "");
+    const mute = document.createElement("button");
+    mute.textContent = "Mute"; mute.className = "mute" + (t.mute ? " on" : "");
+    mute.onclick = (e) => { e.stopPropagation(); send("replace", "/tracks/" + i + "/mute", !t.mute); };
+    const vol = document.createElement("input");
+    vol.type = "range"; vol.min = 0; vol.max = 127; vol.value = t.volume; vol.className = "volume";
+    vol.onclick = (e) => e.stopPropagation();
+    vol.oninput = throttle(() => send("replace", "/tracks/" + i + "/volume", +vol.value), 50);
+    row.append(mute, vol);
+    row.onclick = () => { sel = i; render(); };
+    box.append(row);
+  });
+  renderGrid(); showTransport(); showSamples();
+}
+
+function shown(t) { return t.next ? t.next.pattern : (t.current || 0); }
+
+function renderGrid() {
+  const grid = document.getElementById("grid");
+  grid.textContent = "";
+  const t = doc.tracks[sel];
+  if (!t) return;
+  const p = shown(t), pat = t.patterns[p], step = desc.step || 24, steps = pat.bars * 16;
+  const rows = t.kind === "drums" ? DRUMS : MELODIC;
+  for (const [pitch, label] of rows) {
+    const row = document.createElement("div");
+    row.className = "row";
+    const name = document.createElement("span"); name.textContent = label; row.append(name);
+    for (let s = 0; s < steps; s++) {
+      const c = document.createElement("button");
+      const at = pat.notes.findIndex((n) => n[0] === s * step && n[2] === pitch);
+      c.className = "cell" + (s % 16 === 0 && s ? " bar" : "") + (at >= 0 ? " on" : "");
+      c.dataset.step = s; c.dataset.pitch = pitch;
+      c.style.opacity = s % 4 === 0 ? 1 : 0.8;
+      c.onclick = () => {
+        const base = "/tracks/" + sel + "/patterns/" + p + "/notes/";
+        const i = pat.notes.findIndex((n) => n[0] === s * step && n[2] === pitch);
+        if (i >= 0) send("remove", base + i);
+        else send("add", base + "-", [s * step, step, pitch, 100]);
+      };
+      row.append(c);
+    }
+    grid.append(row);
+  }
+  showHead();
+}
+
+function showTransport() {
+  const b = document.getElementById("play");
+  b.textContent = playing ? "Stop" : "Play";
+  b.classList.toggle("on", playing);
+}
+
+function showHead() {
+  for (const c of document.querySelectorAll(".cell.head")) c.classList.remove("head");
+  const t = doc && doc.tracks[sel];
+  if (!playing || tick == null || !t) return;
+  const pat = t.patterns[shown(t)], step = desc.step || 24;
+  const s = Math.floor(tick / step) % (pat.bars * 16);
+  for (const c of document.querySelectorAll('.cell[data-step="' + s + '"]')) c.classList.add("head");
+}
+
+function showSamples() {
+  const s = desc.samples, el = document.getElementById("samples");
+  if (!s || !s.bytes) { el.textContent = ""; return; }
+  const n = Object.values(s.tracks).reduce((a, t) => a + t.samples, 0);
+  el.textContent = "SoundFont samples in memory: " + n + ", " + (s.bytes / 1048576).toFixed(1) + " MB" +
+    (s.arena ? " of a " + Math.round(s.arena / 1048576) + " MB arena" : "");
+}
+
+function throttle(fn, ms) {
+  let last = 0, timer = null;
+  return () => {
+    const now = Date.now();
+    clearTimeout(timer);
+    if (now - last >= ms) { last = now; fn(); } else timer = setTimeout(() => { last = Date.now(); fn(); }, ms);
+  };
+}
+
+document.getElementById("play").onclick = () => command(playing ? "stop" : "play", { tick: 0 });
+for (const k of ["tempo", "swing"]) {
+  document.getElementById(k).onchange = (e) => send("replace", "/" + k, +e.target.value);
+}
+connect();
+</script>
+</body>
+</html>

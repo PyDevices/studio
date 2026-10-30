@@ -1,0 +1,10 @@
+{
+  "packages": [
+    "/vendor/wheels/pydevices-0.7.7.dev1-py3-none-any.whl",
+    "/vendor/wheels/pydevices_lvgl-9.5.52-cp314-cp314-pyemscripten_2026_0_wasm32.whl"
+  ],
+  "files": {
+    "https://raw.githubusercontent.com/PyDevices/pydevices/v0.7.7.dev1/board_configs/psdisplay/board_config.py": "./board_config.py",
+    "https://raw.githubusercontent.com/PyDevices/pydevices/v0.7.7.dev1/board_configs/psdisplay/board_peripherals.py": "./board_peripherals.py"
+  }
+}

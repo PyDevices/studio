@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0E1116">
+  <title>Ostinato</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icon-192.png">
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #0E1116; }
+    #display_canvas { display: block; width: 100vw; height: 100vh; outline: none; }
+    #gate { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+            color: #E6E9EF; font: 600 22px system-ui, sans-serif; background: rgba(14, 17, 22, 0.72);
+            cursor: pointer; user-select: none; }
+    #gate[hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <canvas id="display_canvas"></canvas>
+  <div id="gate" hidden>Click anywhere to start the sound</div>
+  <script type="module">
+    // The page keeps only what must stay on the main thread: the canvas and
+    // its input, Web MIDI and the AudioContext. The UI and the sound run in
+    // workers (workers/host.js), so nothing here can hold up a note.
+    import { createAudio, createMidiRelay, startWorker } from "./workers/host.js";
+    import boot from "./app/boot_config.js";
+
+    const installed = ["standalone", "minimal-ui", "window-controls-overlay"]
+      .some((m) => matchMedia(`(display-mode: ${m})`).matches);
+    // Installed, Ostinato is a maximised app whose canvas never changes size:
+    // it maximises now, and goes back to maximised if the window is resized.
+    // (In a browser tab it can't control the window; the canvas still keeps
+    // its first size.)
+    const maximise = () => {
+      if (installed && window.resizeTo) {
+        try { window.moveTo(0, 0); window.resizeTo(screen.availWidth, screen.availHeight); } catch (e) { /* not allowed */ }
+      }
+    };
+    maximise();
+    if (installed) await new Promise((r) => setTimeout(r, 200));     // let the window settle first
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
+
+    // Draw at the display's real resolution: on a scaled display (150 % is
+    // common on laptops) a canvas at CSS size would be stretched and soft.
+    // The layout scales from the canvas size, and the input relay maps CSS
+    // pixels back to canvas pixels.
+    const canvas = document.getElementById("display_canvas");
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(innerWidth * dpr);
+    canvas.height = Math.round(innerHeight * dpr);
+    // Frozen: the CSS size too, so a later resize neither stretches it nor
+    // changes the layout (no rebuild, no reload).
+    canvas.style.width = innerWidth + "px";
+    canvas.style.height = innerHeight + "px";
+    const params = new URLSearchParams(location.search);
+    // One engine worker per track: building an instrument blocks its
+    // worker, and with a track to itself only that track goes quiet while
+    // it does. No more engines than tracks: every stream is asked for audio
+    // each quantum, and eight streams dropped out where four never did.
+    const engines = Number(params.get("engines")) || 4;
+    const env = { BASE: new URL("./", location.href).href, ENGINES: String(engines), PAGE_TIME_ORIGIN: String(performance.timeOrigin),
+                  OSTINATO_DEBUG: params.get("debug") || "" };
+
+    const audio = await createAudio({ channels: 2, minFrames: Number(params.get("minframes")) || 1024 });
+    const midi = createMidiRelay();
+    const ostinato = { audio, midi, engines: [], ui: null };
+    window.__ostinato = ostinato;
+
+    // The engines' audio goes to the master worker, which sums the tracks,
+    // runs the master rack, and is the worklet's one stream. It sends the
+    // sum 6 dB down (headroom into the rack); the worklet's gain restores it.
+    const uiPorts = { midi: midi.port() };
+    const masterPorts = { audio: audio.workerPort };
+    audio.setGain(2.0);
+    for (let i = 0; i < engines; i++) {
+      const link = new MessageChannel();
+      uiPorts["engine" + i] = link.port1;
+      const lane = new MessageChannel();
+      masterPorts["track" + i] = lane.port2;
+      ostinato.engines.push(startWorker({
+        name: "engine" + i, main: "main", ...boot.engine,
+        env: { ...env, ENGINE_INDEX: String(i) },
+        ports: { audio: lane.port1, midi: midi.port(), ui: link.port2 },
+      }));
+    }
+    const masterLink = new MessageChannel();
+    uiPorts.master = masterLink.port1;
+    masterPorts.ui = masterLink.port2;
+    ostinato.master = startWorker({ name: "master", main: "master", ...boot.engine, env, ports: masterPorts });
+    ostinato.ui = startWorker({ name: "ui", main: "main", canvas, ...boot.ui, env, ports: uiPorts });
+
+    // Browsers start audio only after a click or a key.
+    const gate = document.getElementById("gate");
+    const resume = () => audio.context.resume().then(() => { gate.hidden = true; });
+    if (audio.context.state !== "running") {
+      gate.hidden = false;
+      gate.addEventListener("pointerdown", resume, { once: true });
+      addEventListener("keydown", resume, { once: true });
+    }
+    // Files: the UI asks, the page shows the browser's pickers and answers.
+    const AUTOSAVE = "ostinato.autosave";
+    const ui = ostinato.ui;
+    const tell = (msg) => ui.send(msg);
+    const pickerTypes = (desc, ext, mime) => [{ description: desc, accept: { [mime]: [ext] } }];
+    async function saveFile(name, ext, mime, desc, data) {
+      if (!window.showSaveFilePicker) throw new Error("This browser can't save files here");
+      const handle = await showSaveFilePicker({ suggestedName: name + ext, types: pickerTypes(desc, ext, mime) });
+      const w = await handle.createWritable();
+      await w.write(data);
+      await w.close();
+      return handle.name;
+    }
+    const exports = {};
+    let typing = false;            // a text field in the app has the keys: no shortcuts
+    let projectHandle = null;      // the file a quick save writes back to
+    ui.onmessage = async (m) => {
+      if (m.type !== "app") return;
+      if (m.kind === "geom") { window.__geom = m; return; }   // for tests
+      if (m.kind === "project") { window.__project = JSON.parse(m.json); return; }
+      if (m.kind === "uistats") { window.__uistats = m; return; }
+      if (m.kind === "settled") { window.__settled = m.ok; return; }
+      if (m.kind === "typing") { typing = m.on; return; }
+      if (m.kind === "masterstats") { window.__masterstats = { ...(m.stats || {}), engines: m.engines, meters: m.meters }; return; }
+      try {
+        if (m.kind === "save") {
+          // A quick save writes back to the file last saved or opened; the
+          // first save, and Save as, ask where.
+          if (m.quick && projectHandle) {
+            const w = await projectHandle.createWritable();
+            await w.write(m.json);
+            await w.close();
+            tell({ kind: "saved", file: projectHandle.name });
+          } else {
+            if (!window.showSaveFilePicker) throw new Error("This browser can't save files here");
+            const h = await showSaveFilePicker({ suggestedName: m.name + ".ostinato.json",
+              types: pickerTypes("Ostinato project", ".ostinato.json", "application/json") });
+            const w = await h.createWritable();
+            await w.write(m.json);
+            await w.close();
+            projectHandle = h;
+            tell({ kind: "saved", file: h.name });
+          }
+        } else if (m.kind === "open") {
+          if (!window.showOpenFilePicker) throw new Error("This browser can't open files here");
+          const [h] = await showOpenFilePicker({ types: pickerTypes("Ostinato project", ".json", "application/json") });
+          projectHandle = h;
+          tell({ kind: "loaded", json: await (await h.getFile()).text() });
+        } else if (m.kind === "autosave") {
+          try { localStorage.setItem(AUTOSAVE, m.json); } catch (e) { /* storage full or blocked */ }
+          if (m.then === "reload") location.reload();
+        } else if (m.kind === "export-midi") {
+          tell({ kind: "exported", file: await saveFile(m.name, ".mid", "audio/midi", "MIDI file", new Uint8Array(m.bytes)) });
+        } else if (m.kind === "export-wav") {
+          // Pick the file first, while the click still counts as a gesture.
+          const handle = window.__exportHandle || (window.showSaveFilePicker &&
+            await showSaveFilePicker({ suggestedName: m.name + ".wav", types: pickerTypes("WAV audio", ".wav", "audio/wav") }));
+          if (!handle) throw new Error("This browser can't save files here");
+          const job = { frames: m.frames, sums: new Float32Array(m.frames * 2), done: 0, chunks: 0, handle, t0: performance.now(),
+                        engines: ostinato.engines.map(() => ({ chunks: 0, energy: 0 })), told: 0 };
+          exports.current = job;
+          for (const e of ostinato.engines) e.send({ kind: "render", frames: m.frames, chunk: 96000 });
+        }
+      } catch (err) {
+        tell({ kind: "failed", why: err.name === "AbortError" ? "Cancelled" : String(err.message || err) });
+      }
+    };
+    // For tests: how far a WAV render has got.
+    window.__exportProgress = () => exports.current &&
+      { chunks: exports.current.engines.map((x) => x.chunks), done: exports.current.done,
+        ms: performance.now() - exports.current.t0 };
+    ostinato.engines.forEach((e, index) => {
+      e.onmessage = async (m) => {
+        const job = exports.current;
+        if (m.type !== "app" || !job) return;
+        if (m.kind === "pcm") {
+          const at = m.seq * 96000 * 2;
+          const n = Math.min(m.pcm.length, job.sums.length - at);
+          const mine = job.engines[index];
+          for (let i = 0; i < n; i++) {
+            const v = m.pcm[i] / 32768;
+            job.sums[at + i] += v;
+            mine.energy += v * v;
+          }
+          job.chunks++;
+          mine.chunks++;
+          // Every engine renders the whole length; the slowest one is the progress.
+          const part = Math.min(...job.engines.map((x) => x.chunks)) * 96000 / job.frames;
+          if (part - job.told >= 0.01) {
+            job.told = part;
+            tell({ kind: "render-progress", part });
+          }
+        } else if (m.kind === "rendered" && ++job.done === ostinato.engines.length) {
+          try {
+            // Through the master rack: the sum goes 6 dB down as int16, as it
+            // does live, and comes back processed.
+            const n = job.sums.length, pcm = new Int16Array(n);
+            for (let i = 0; i < n; i++) {
+              const v = Math.round(job.sums[i] * 16383.5);
+              pcm[i] = v > 32767 ? 32767 : v < -32768 ? -32768 : v;
+            }
+            tell({ kind: "render-progress", part: 1, master: true });
+            const back = await new Promise((resolve) => {
+              ostinato.master.onmessage = (mm) => { if (mm.type === "app" && mm.kind === "master-rendered") resolve(mm.pcm); };
+              ostinato.master.send({ kind: "master-render", frames: job.frames, pcm }, [pcm.buffer]);
+            });
+            const out = new Float32Array(back.length);
+            for (let i = 0; i < back.length; i++) out[i] = back[i] / 16383.5;
+            const w = await job.handle.createWritable();
+            await w.write(wav(out, 48000));
+            await w.close();
+          } catch (err) {
+            tell({ kind: "failed", why: String(err.message || err) });
+            return;
+          } finally {
+            exports.current = null;
+          }
+          window.__lastExport = { seconds: job.frames / 48000, renderMs: performance.now() - job.t0,
+                                  rms: job.engines.map((x) => Math.sqrt(x.energy / (job.frames * 2))),
+                                  peak: job.sums.reduce((m, v) => Math.max(m, Math.abs(v)), 0) };
+          tell({ kind: "exported", file: job.handle.name });
+        }
+      };
+    });
+    // Shortcuts. The canvas still gets every key for LVGL; these go to the app.
+    // The mouse wheel over the canvas, for the piano roll's view (LVGL gets it too).
+    canvas.addEventListener("wheel", (e) => {
+      tell({ kind: "wheel", dy: e.deltaY, x: Math.round(e.offsetX * dpr), y: Math.round(e.offsetY * dpr) });
+    }, { passive: true });
+    // Shift, for the controls that do more with it (a pattern for every track,
+    // velocity drags). LVGL's clicks don't carry modifier keys.
+    let shiftDown = false;
+    const shift = (down) => { if (down !== shiftDown) { shiftDown = down; tell({ kind: "key", key: down ? "shift-down" : "shift-up" }); } };
+    addEventListener("keydown", (e) => { if (e.key === "Shift") shift(true); });
+    addEventListener("keyup", (e) => { if (e.key === "Shift") shift(false); });
+    addEventListener("blur", () => shift(false));
+    addEventListener("keydown", (e) => {
+      const k = e.key.toLowerCase();
+      let name = null;
+      if (typing) return;                                  // the keys are the text field's
+      if (k === " ") name = "space";
+      else if (k === "r" && !e.ctrlKey && !e.metaKey) name = "r";
+      else if (k === "z" && (e.ctrlKey || e.metaKey)) name = e.shiftKey ? "redo" : "undo";
+      else if (k === "y" && (e.ctrlKey || e.metaKey)) name = "redo";
+      else if (k === "escape") name = "escape";
+      else if (k === "delete" || k === "backspace") name = "delete";
+      else if (k === "s" && (e.ctrlKey || e.metaKey)) name = e.shiftKey ? "save-as" : "save";
+      else if (k === "c" && (e.ctrlKey || e.metaKey)) name = "copy";
+      else if (k === "v" && (e.ctrlKey || e.metaKey)) name = "paste";
+      else if (k === "d" && (e.ctrlKey || e.metaKey)) name = "duplicate";
+      else if (k === "a" && (e.ctrlKey || e.metaKey)) name = "select-all";
+      if (name && !e.repeat) { e.preventDefault(); tell({ kind: "key", key: name }); }
+    });
+    // The canvas never changes size. Installed, a resize is undone: back to maximised.
+    let resizeTimer = null;
+    addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(maximise, 300);
+    });
+    function wav(stereo, rate) {
+      // 16-bit stereo, with the same peak limit the worklet applies live.
+      let peak = 0;
+      for (let i = 0; i < stereo.length; i++) peak = Math.max(peak, Math.abs(stereo[i]));
+      const g = peak > 0.97 ? 0.97 / peak : 1;
+      const buf = new ArrayBuffer(44 + stereo.length * 2), v = new DataView(buf);
+      const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+      str(0, "RIFF"); v.setUint32(4, 36 + stereo.length * 2, true); str(8, "WAVEfmt ");
+      v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true);
+      v.setUint32(24, rate, true); v.setUint32(28, rate * 4, true); v.setUint16(32, 4, true);
+      v.setUint16(34, 16, true); str(36, "data"); v.setUint32(40, stereo.length * 2, true);
+      for (let i = 0; i < stereo.length; i++) {
+        v.setInt16(44 + i * 2, Math.max(-32768, Math.min(32767, Math.round(stereo[i] * g * 32767))), true);
+      }
+      return buf;
+    }
+    ostinato.ready = Promise.all([ostinato.ui.ready, ...ostinato.engines.map((e) => e.ready)])
+      .then(() => {
+        window.__appReady = true;
+        let saved = null;
+        try { saved = localStorage.getItem(AUTOSAVE); } catch (e) { /* storage blocked */ }
+        if (saved && !params.has("fresh")) setTimeout(() => tell({ kind: "restore", json: saved }), 300);
+        let seen = null;
+        try { seen = localStorage.getItem("ostinato.welcomed"); localStorage.setItem("ostinato.welcomed", "1"); } catch (e) { /* blocked */ }
+        if (!seen && !params.has("fresh")) setTimeout(() => tell({ kind: "first-run" }), 600);
+      })
+      .catch((err) => { window.__appError = String(err); });
+  </script>
+</body>
+</html>

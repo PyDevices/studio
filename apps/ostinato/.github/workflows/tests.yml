@@ -1,0 +1,33 @@
+name: Tests
+
+# Documentation-only changes can't change this result, so they don't run it.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.x"
+
+      - name: Vendor PyScript
+        run: ./scripts/vendor_pyscript.sh
+
+      - name: Run tests
+        run: python3 -m unittest discover -s tests -v
