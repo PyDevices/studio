@@ -10,7 +10,7 @@ virtual MIDI port your DAW can send to, such as a loopback port on Windows.
 
 ## Run it on a port
 
-With `lib/`, audiocomponents' `lib/` and pydevices' `midiports` on the path,
+With `lib/`, audioinstruments' and audioeffects' `lib/` and pydevices' `midiports` on the path,
 name the port by any part of its name:
 
 ```bash

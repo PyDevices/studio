@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: MIT
 """The project 5 gate's own songs, and the bank they're measured on.
 
-    python tools/gm_songs.py FOLDER --audiocomponents PATH
+    python tools/gm_songs.py FOLDER --audioinstruments PATH
 
 Writes ``bends.mid`` and ``resets.mid`` into FOLDER, each with a
 ``.json`` of what to measure where, and ``sine.sf2``: every GM program and
 the standard kit play one looped sine at 441 Hz on key 69 (a 50-frame
 period at 22050 Hz), so a note's pitch and level can be read off the WAV.
-The bank is built with audiocomponents' ``tests/support/sf2_builder.py``.
+The bank is built with audioinstruments' ``tests/support/sf2_builder.py``.
 
 The songs are written the way a sequencer writes a GM file: GM System On,
 then per channel Reset All Controllers, Bank Select, Program Change,
@@ -180,10 +180,10 @@ def resets():
     return ev, probes, ref
 
 
-def sine_bank(path, audiocomponents):
-    sys.path.insert(0, os.path.join(audiocomponents, "lib"))
-    sys.path.insert(0, os.path.join(audiocomponents, "tests", "support"))
-    import audioinstruments._sf2 as G
+def sine_bank(path, audioinstruments):
+    sys.path.insert(0, os.path.join(audioinstruments, "lib"))
+    sys.path.insert(0, os.path.join(audioinstruments, "tests", "support"))
+    import audioinstruments._rack._sf2 as G
     import sf2_builder
 
     period = 50  # 441 Hz at sf2_builder's 22050 Hz
@@ -199,7 +199,7 @@ def sine_bank(path, audiocomponents):
 
 def main(argv):
     folder = argv[0]
-    ac = argv[argv.index("--audiocomponents") + 1]
+    ac = argv[argv.index("--audioinstruments") + 1]
     os.makedirs(folder, exist_ok=True)
     sine_bank(os.path.join(folder, "sine.sf2"), ac)
     ev, probes = bends()

@@ -20,8 +20,11 @@ permissions:
 env:
   # What Vamp and the sound module are checked against, each a commit so a
   # change upstream can't redden this repository with nothing here moved.
-  # audiocomponents names its own audiodsp in AUDIODSP_PIN.
-  AUDIOCOMPONENTS_REF: 955ddb31dd897c6e9100222bd348be9b63d397fe
+  # audioeffects names its own audiodsp in AUDIODSP_PIN, and audioinstruments
+  # needs one that new (audiodsp 0.6.11 or later), so the pin stands for both.
+  # Both are the v0.5.0 tags.
+  AUDIOINSTRUMENTS_REF: 256662f69dc18d9bcd59f395b95a562ae74504f9
+  AUDIOEFFECTS_REF: c0b05edc79e54b3d944417d983030676b80cfca3
   # hmilink isn't in a pydevices release yet.
   PYDEVICES_REF: aa6911844168c21296a8f72dc825d744bf2a6c1f
   MICROPYTHON_REF: v1.29.0
@@ -60,9 +63,15 @@ jobs:
 
       - uses: actions/checkout@v7
         with:
-          repository: PyDevices/audiocomponents
-          ref: ${{ env.AUDIOCOMPONENTS_REF }}
-          path: audiocomponents
+          repository: PyDevices/audioinstruments
+          ref: ${{ env.AUDIOINSTRUMENTS_REF }}
+          path: audioinstruments
+
+      - uses: actions/checkout@v7
+        with:
+          repository: PyDevices/audioeffects
+          ref: ${{ env.AUDIOEFFECTS_REF }}
+          path: audioeffects
 
       - uses: actions/checkout@v7
         with:
@@ -74,10 +83,10 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Resolve audiocomponents' audiodsp pin
+      - name: Resolve audioeffects' audiodsp pin
         id: pin
         run: |
-          tag=$(grep -v '^[[:space:]]*#' audiocomponents/AUDIODSP_PIN | grep -v '^[[:space:]]*$' \
+          tag=$(grep -v '^[[:space:]]*#' audioeffects/AUDIODSP_PIN | grep -v '^[[:space:]]*$' \
                 | head -1 | awk '{print $1}')
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "audiodsp pinned at $tag"
@@ -88,10 +97,16 @@ jobs:
           ref: ${{ steps.pin.outputs.tag }}
           path: modules/audiodsp
 
-      - name: Install the audio stack on CPython
+      - name: Install audiodsp on CPython
         run: |
           python -m pip install ./modules/audiodsp
-          python -m pip install --no-deps -e audiocomponents/lib/audioinstruments -e audiocomponents/lib/audioeffects
+
+      # The rack computes with ulab on MicroPython.
+      - uses: actions/checkout@v7
+        with:
+          repository: v923z/micropython-ulab
+          ref: 6.7.3
+          path: ulab-src
 
       - uses: actions/checkout@v7
         with:
@@ -100,9 +115,10 @@ jobs:
           path: micropython
 
       # USER_C_MODULES is the parent folder: py.mk takes every
-      # */micropython.mk one level down, which is audiodsp alone.
-      - name: Build unix MicroPython with audiodsp
+      # */micropython.mk one level down, which is audiodsp and ulab.
+      - name: Build unix MicroPython with audiodsp and ulab
         run: |
+          ln -s $GITHUB_WORKSPACE/ulab-src/code modules/ulab
           (cd modules/audiodsp && ./scripts/fetch_deps.sh)
           make -C micropython/mpy-cross -j4
           make -C micropython/ports/unix submodules
@@ -112,7 +128,8 @@ jobs:
         working-directory: studio
         env:
           PYDEVICES_MICROPYTHON: ${{ github.workspace }}/micropython/ports/unix/build-standard/micropython
-          AUDIOCOMPONENTS_LIB: ${{ github.workspace }}/audiocomponents/lib
+          AUDIOINSTRUMENTS_DIR: ${{ github.workspace }}/audioinstruments
+          AUDIOEFFECTS_DIR: ${{ github.workspace }}/audioeffects
           HMILINK_PATH: ${{ github.workspace }}/pydevices/hmilink
           VAMP_REQUIRE: "1"
         run: python -m unittest discover -s tests -v

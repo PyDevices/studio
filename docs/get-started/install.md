@@ -2,14 +2,15 @@
 
 studio is used from a clone, beside the libraries it builds on. The sound
 module and Vamp need audiodsp, which provides the audio nodes, and
-audiocomponents, which provides the instruments and effects:
+audioinstruments and audioeffects, which provide the instruments and effects:
 
 ```bash
 git clone https://github.com/PyDevices/studio
-git clone https://github.com/PyDevices/audiocomponents
+git clone https://github.com/PyDevices/audioinstruments
+git clone https://github.com/PyDevices/audioeffects
 git clone https://github.com/PyDevices/audiodsp
 pip install ./audiodsp numpy
-pip install --no-deps ./audiocomponents/lib/audioinstruments ./audiocomponents/lib/audioeffects
+pip install --no-deps ./audioinstruments ./audioeffects/lib/audioeffects
 ```
 
 ## A SoundFont

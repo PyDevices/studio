@@ -9,10 +9,10 @@ CircuitPython, then once per planted fault.
 The interpreters: this Python; ``$PYDEVICES_MICROPYTHON`` and
 ``$PYDEVICES_CIRCUITPYTHON``, else ``micropython`` and ``circuitpython`` on
 the PATH, else ``bin/`` in a folder above this checkout. One that isn't
-there is skipped, loudly. audiocomponents' ``lib`` (``$AUDIOCOMPONENTS_LIB``,
-else a checkout beside this one) goes on MicroPython's and CircuitPython's
-path, so their real-instrument checks run; on CPython they run where the
-Python has ``audioinstruments`` (audiocomponents' venv).
+there is skipped, loudly. The ``lib`` folders of audioinstruments and
+audioeffects (``$AUDIOINSTRUMENTS_DIR`` and ``$AUDIOEFFECTS_DIR``, else
+checkouts beside this one) go on every interpreter's path, so the
+real-instrument checks run; they need audiodsp installed or built in.
 """
 
 import os
@@ -44,27 +44,37 @@ def _find(env, name):
     return None
 
 
-def _audiocomponents_lib():
-    explicit = os.environ.get("AUDIOCOMPONENTS_LIB")
+def audio_checkout(name):
+    """The checkout of audioinstruments or audioeffects: ``$AUDIOINSTRUMENTS_DIR``
+    or ``$AUDIOEFFECTS_DIR``, else one beside this checkout (or beside the
+    repository this is a worktree of)."""
+    explicit = os.environ.get(name.upper() + "_DIR")
     if explicit:
         return explicit
     for parent in TESTS.parents:
-        candidate = parent / "audiocomponents" / "lib"
-        if (candidate / "audioinstruments").is_dir():
+        candidate = parent / name
+        if (candidate / "lib" / name).is_dir():
             return str(candidate)
     return None
 
 
+def audio_libs():
+    """The ``lib`` folders of audioinstruments and audioeffects that exist."""
+    found = [audio_checkout(n) for n in ("audioinstruments", "audioeffects")]
+    return [os.path.join(c, "lib") for c in found if c]
+
+
 def _cmd(kind):
     if kind == "cpython":
-        return [sys.executable, CONTRACT], None
+        env = dict(os.environ)
+        env["PYTHONPATH"] = os.pathsep.join(audio_libs() + [env["PYTHONPATH"]] if env.get("PYTHONPATH") else audio_libs())
+        return [sys.executable, CONTRACT], env
     exe = _find("PYDEVICES_MICROPYTHON", "micropython") if kind == "micropython" else \
         _find("PYDEVICES_CIRCUITPYTHON", "circuitpython")
     if exe is None:
         return None, None
     env = dict(os.environ)
-    lib = _audiocomponents_lib()
-    env["MICROPYPATH"] = ".frozen" + (":" + lib if lib else "")
+    env["MICROPYPATH"] = ":".join([".frozen"] + audio_libs())
     return [exe, "-X", "heapsize=64M", CONTRACT], env
 
 

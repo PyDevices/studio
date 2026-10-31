@@ -33,11 +33,11 @@ What it needs, on Windows:
   ``midi loopback create --name-a "Sound module" --name-b "Sound module device side"``
 * REAPER, with a configuration (``--reaper-cfg``) in which that output is
   enabled. The gate never touches any other REAPER configuration.
-* a CPython venv (``--venv``) with ``pydevices-audiodsp`` at
-  audiocomponents' pin and ``pydevices-desktop``.
+* a CPython venv (``--venv``) with ``omnipython-audiodsp`` at the pin
+  audioeffects names in its ``AUDIODSP_PIN`` and ``pydevices-desktop``.
 
 Everything the interpreters import is staged into ``--stage`` from the
-sibling checkouts' ``origin/main``: audiocomponents' ``lib``,
+sibling checkouts' ``origin/main``: audioinstruments' and audioeffects' ``lib``,
 pydevices' ``midiports`` and ``uwin32``, and this checkout's ``lib``.
 The WAV files, the logs and REAPER's project of the song are left in
 ``<stage>/out`` and ``<stage>/song``.
@@ -99,9 +99,11 @@ def stage(args):
     if os.path.isdir(tmp):
         shutil.rmtree(tmp)
     heads = {}
-    heads["audiocomponents"] = _archive(args.audiocomponents, ["lib"], tmp)
-    for name in os.listdir(os.path.join(tmp, "lib")):
-        shutil.move(os.path.join(tmp, "lib", name), lib)
+    for repo in ("audioinstruments", "audioeffects"):
+        heads[repo] = _archive(getattr(args, repo), ["lib"], tmp)
+        for name in os.listdir(os.path.join(tmp, "lib")):
+            shutil.move(os.path.join(tmp, "lib", name), lib)
+        shutil.rmtree(os.path.join(tmp, "lib"))
     heads["pydevices"] = _archive(args.pydevices, ["midiports/midiports", "utils/uwin32.py"], tmp)
     shutil.move(os.path.join(tmp, "midiports", "midiports"), lib)
     shutil.move(os.path.join(tmp, "utils", "uwin32.py"), lib)
@@ -338,7 +340,8 @@ def main(argv=None):
     ap.add_argument("--micropython-exe", default=shutil.which("micropython.exe"))
     ap.add_argument("--micropython", default=None)
     ap.add_argument("--circuitpython", default=None)
-    ap.add_argument("--audiocomponents", default=_find_sibling("audiocomponents"))
+    ap.add_argument("--audioinstruments", default=_find_sibling("audioinstruments"))
+    ap.add_argument("--audioeffects", default=_find_sibling("audioeffects"))
     ap.add_argument("--pydevices", default=_find_sibling("pydevices"))
     ap.add_argument("--max-lag", type=int, default=250)
     ap.add_argument("--heap", default="64M", help="MicroPython's and CircuitPython's heap")
@@ -354,8 +357,9 @@ def main(argv=None):
         with open(rpp, "w") as f:
             f.write('<REAPER_PROJECT 0.1 "7.0" 0\n>\n')
     info, heads = stage(args)
-    print("staged audiocomponents %s, pydevices %s; the song: %d parts, %.0f s"
-          % (heads["audiocomponents"], heads["pydevices"], len(info["parts"]), info["seconds"]))
+    print("staged audioinstruments %s, audioeffects %s, pydevices %s; the song: %d parts, %.0f s"
+          % (heads["audioinstruments"], heads["audioeffects"], heads["pydevices"],
+             len(info["parts"]), info["seconds"]))
     results = {}
     for name in args.only or INTERPRETERS:
         print("\n== %s" % name, flush=True)

@@ -23,7 +23,8 @@ kinds of song:
 Each runs on CPython (a Windows venv, ``--venv-python``), MicroPython
 windows (``micropython.exe``), MicroPython unix and CircuitPython unix
 (``bin/`` above this checkout). Everything they import is staged into
-``--stage`` from this checkout and the audiocomponents checkout given.
+``--stage`` from this checkout and the audioinstruments and audioeffects
+checkouts given.
 ``--plants`` runs ``PLANTS`` too, on the first interpreter, and each must
 fail. WAVs and logs are left in ``<stage>/out``.
 """
@@ -85,8 +86,10 @@ def stage(args):
     tests = os.path.join(root, "tests")
     for d in (lib, tools, tests):
         shutil.rmtree(d, ignore_errors=True)
-    shutil.copytree(os.path.join(args.audiocomponents, "lib"), lib,
-                    ignore=shutil.ignore_patterns("__pycache__", "*.egg-info", "pyproject.toml"))
+    os.makedirs(lib)
+    for repo in (args.audioinstruments, args.audioeffects):
+        shutil.copytree(os.path.join(repo, "lib"), lib, dirs_exist_ok=True,
+                        ignore=shutil.ignore_patterns("__pycache__", "*.egg-info", "pyproject.toml"))
     shutil.copytree(os.path.join(REPO, "lib", "soundmodule"), os.path.join(lib, "soundmodule"),
                     ignore=shutil.ignore_patterns("__pycache__"))
     os.makedirs(tools)
@@ -229,7 +232,8 @@ def main(argv=None):
     ap.add_argument("--stage", default="/mnt/c/temp/soundmodule-p5/stage")
     ap.add_argument("--songs", default=os.path.join(REPO, "tests", "midi"), help="a folder of ordinary GM files")
     ap.add_argument("--bank", default=None)
-    ap.add_argument("--audiocomponents", default=None)
+    ap.add_argument("--audioinstruments", default=None)
+    ap.add_argument("--audioeffects", default=None)
     ap.add_argument("--venv-python", default="/mnt/c/temp/soundmodule-p5/venv/Scripts/python.exe")
     ap.add_argument("--micropython-exe", default="/mnt/c/Users/bradb/.local/bin/micropython.exe")
     ap.add_argument("--micropython", default=None)
@@ -241,11 +245,12 @@ def main(argv=None):
     ap.add_argument("--plants", action="store_true")
     ap.add_argument("--report", default=None, help="write the results as JSON here")
     args = ap.parse_args(argv)
-    if args.audiocomponents is None:
-        for parent in _parents(REPO):
-            if os.path.isdir(os.path.join(parent, "audiocomponents", "lib")):
-                args.audiocomponents = os.path.join(parent, "audiocomponents")
-                break
+    for repo in ("audioinstruments", "audioeffects"):
+        if getattr(args, repo) is None:
+            for parent in _parents(REPO):
+                if os.path.isdir(os.path.join(parent, repo, "lib")):
+                    setattr(args, repo, os.path.join(parent, repo))
+                    break
     args.micropython = args.micropython or _bin("micropython")
     args.circuitpython = args.circuitpython or _bin("circuitpython")
     if args.bank is None:
@@ -256,8 +261,8 @@ def main(argv=None):
     os.makedirs(args.stage, exist_ok=True)
     stage(args)
     gen = os.path.join(args.stage, "gate-songs")
-    subprocess.run([sys.executable, os.path.join(HERE, "gm_songs.py"), gen, "--audiocomponents",
-                    args.audiocomponents], check=True)
+    subprocess.run([sys.executable, os.path.join(HERE, "gm_songs.py"), gen, "--audioinstruments",
+                    args.audioinstruments], check=True)
     sine = os.path.join(gen, "sine.sf2")
     own = [os.path.join(gen, n + ".mid") for n in ("bends", "resets")]
     files = sorted(glob.glob(os.path.join(args.songs, "*.mid"))) if args.songs else []

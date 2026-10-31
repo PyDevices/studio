@@ -146,6 +146,7 @@ def serve(module, midi_in, wav=None, seconds=600, idle=None, wait=None, tail=2.0
         if ending is not None and frames >= ending:
             break
         if wav is not None and frames < due:
+            module.fill()
             data = bytes(audiocore.get_buffer(module.output)[1])
             wav.write(data)
             frames += _frames(data)
@@ -161,6 +162,7 @@ def serve(module, midi_in, wav=None, seconds=600, idle=None, wait=None, tail=2.0
         if wav is None:
             frames = due
         if out is not None:
+            module.fill()
             service = getattr(out, "service", None)
             if service is not None:
                 service()

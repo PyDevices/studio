@@ -14,12 +14,14 @@ module's parts do.
 | Bank (CC0) | Program Change *n* plays | Bank LSB (CC32) |
 |---|---|---|
 | 0-79 | General MIDI program *n* from your SoundFont | the SoundFont's variation bank |
-| 80 | the *n*-th of audiocomponents' instruments (`engine.INSTRUMENTS`) | the instrument's patch |
+| 80 | the *n*-th of audioinstruments' instruments (`engine.INSTRUMENTS`) | the instrument's patch |
 | 81 | the *n*-th drum machine (`engine.DRUM_MACHINES`) | the drum machine's patch |
 
 Channel 10 plays the SoundFont's drums. The lists `INSTRUMENTS` and
 `DRUM_MACHINES` are in `engine.py`; new entries go on the end, so a song's
-program numbers keep their sound.
+program numbers keep their sound. A `None` in a list is a program the
+earlier instrument set had and the current one doesn't: it plays nothing, and
+the numbers after it stay where they were.
 
 ## Controllers
 
