@@ -107,7 +107,7 @@ def main():
     ap.add_argument("--stress", type=int, default=1)
     ap.add_argument("--target", type=int, default=768, help="frames the worklet keeps queued")
     ap.add_argument("--parse", default="adafruit", choices=("adafruit", "raw"))
-    ap.add_argument("--voice", default="minimoog")
+    ap.add_argument("--voice", default="mono_synth")
     ap.add_argument("--clock", action="store_true", help="interleave MIDI clock with the notes")
     ap.add_argument("--scenario", default="canon", choices=("canon", "scale"),
                     help="canon: Violin I of tools/scenarios/canon_in_d.yaml, staccato; scale: two octaves up and down")

@@ -22,14 +22,14 @@ def run(s):
     g = app.geom()
     app.click_rect(g["play"]); time.sleep(3)
     before = s.stats()
-    for name in ("dx7", "prophet5", "mellotron", "minimoog"):
+    for name in ("poly8", "poly5", "string_ensemble", "mono_synth"):
         s.send({"kind": "instrument", "index": 3, "name": name})
         time.sleep(2.5)
     after = s.stats()
     app.click_rect(g["stop"])
     lead = app.project()["tracks"][3]["instrument"]
     d = [x["underruns"] - y["underruns"] for x, y in zip(after["streams"], before["streams"])]
-    return [(sum(d) == 0 and lead == "minimoog",
+    return [(sum(d) == 0 and lead == "mono_synth",
              "dropouts per stream during four instrument changes: %s; Lead ended on %s" % (d, lead))]
 
 

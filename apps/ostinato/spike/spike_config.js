@@ -30,7 +30,7 @@ export default {
     "midiports/webmidi.py",
     "midiports/windows.py"
   ],
-  "voice": "minimoog",
+  "voice": "mono_synth",
   "parse": "adafruit",
   "target": 768,
   "lvglWheel": "vendor/wheels/pydevices_lvgl-9.5.52-cp314-cp314-pyemscripten_2026_0_wasm32.whl"

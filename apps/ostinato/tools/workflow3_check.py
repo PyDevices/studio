@@ -8,7 +8,7 @@
   scenes    a scene moves down; clicking its name opens a field, typed text
             (Space and R included) names it without playing or arming record;
             capitals typed with Caps Lock stay capitals
-  held      a held note follows a knob: Cutoff turned down while a minimoog
+  held      a held note follows a knob: Cutoff turned down while a mono_synth
             note sounds darkens that same note
   select    Shift-drag a box selects the notes in it; dragging one moves them
             all; Ctrl+C then Ctrl+V pastes them at the clicked step; Ctrl+D
@@ -83,11 +83,11 @@ def run(s):
     # -- held: a knob reaches the note already sounding
     s.reset()
     app.select(1)
-    s.send({"kind": "instrument", "index": 1, "name": "minimoog"}); time.sleep(0.3)
+    s.send({"kind": "instrument", "index": 1, "name": "mono_synth"}); time.sleep(0.3)
     s.settle()
-    s.send({"kind": "cc", "chan": 0, "cc": 31, "value": 127}); time.sleep(0.3)      # Cutoff open
+    s.send({"kind": "cc", "chan": 0, "cc": 30, "value": 127}); time.sleep(0.3)      # Cutoff open
     x = app.record(2.6, before=lambda: app.play_midi([
-        [200, [0x90, 45, 100]], [1300, [0xB0, 31, 5]], [2400, [0x80, 45, 0]]]))
+        [200, [0x90, 45, 100]], [1300, [0xB0, 30, 5]], [2400, [0x80, 45, 0]]]))
     sr = 48000
     on = int(np.argmax(np.abs(x) > 0.01))
 

@@ -68,10 +68,10 @@ def new_project():
         "loop_scene": None,            # a scene index to loop in song mode, or None
         "master": {"volume": 100, "rack": []},
         "tracks": [
-            track("drums", "tr808", "Drums"),
-            track("melodic", "tb303", "Bass"),
-            track("melodic", "juno106", "Keys"),
-            track("melodic", "minimoog", "Lead"),
+            track("drums", "rhythm808", "Drums"),
+            track("melodic", "acid303", "Bass"),
+            track("melodic", "poly106", "Keys"),
+            track("melodic", "mono_synth", "Lead"),
         ],
         "bindings": {},                # "ch:cc" -> target path, from MIDI-learn
     }

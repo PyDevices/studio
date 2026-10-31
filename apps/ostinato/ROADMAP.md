@@ -3,7 +3,7 @@
 - A layout for 1280x720 and one for phones: the layout is a table of
   regions, so each is a new table.
 - Resizing without a reload: today a resize saves and reloads at the new size.
-- Filter sweeps over held notes, once audiocomponents' macros reach
+- Filter sweeps over held notes, once the instruments' macros reach
   sounding notes.
 - More than four tracks: each track is an engine worker, and the audio thread
   asks every stream for audio each quantum, so it's measured before it grows.

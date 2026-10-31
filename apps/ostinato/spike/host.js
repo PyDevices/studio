@@ -93,7 +93,7 @@ async function start(opts = {}) {
   });
   worker.postMessage({
     type: "init", base: BASE, sampleRate: ctx.sampleRate,
-    voice: opts.voice || "minimoog", parse: opts.parse || "adafruit", plant: opts.plant || "", leadMs: opts.leadMs || 0,
+    voice: opts.voice || "mono_synth", parse: opts.parse || "adafruit", plant: opts.plant || "", leadMs: opts.leadMs || 0,
     wheels: opts.wheels, libs: opts.libs, sab, target,
   }, [audio.port1, midi.port1]);
   const info = await ready;

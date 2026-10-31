@@ -3,7 +3,7 @@
     .venv/bin/python tools/workflow_check.py --cdp http://127.0.0.1:9222
     .venv/bin/python tools/workflow_check.py --desktop processes|threads|threads-ft
 
-  knobs     every instrument and effect knob is on screen (Juno: 16, ParametricEQ: 16)
+  knobs     every instrument and effect knob is on screen (Poly-106: 10, ParametricEQ: 16)
   copy      Copy puts this track's pattern in its next empty slot and goes there;
             1 bar to 2 repeats the bar
   confirm   New after an edit asks first; Cancel keeps the work, Discard starts over
@@ -38,15 +38,15 @@ def run(s):
 
     # -- knobs
     s.reset()
-    app.select(2)                                  # Keys: Juno-106, 16 knobs
+    app.select(2)                                  # Keys: Poly-106, 10 knobs
     g = app.geom()
     s.op({"op": "insert", "path": [["track", app.project()["tracks"][2]["id"]], "rack", -1],
           "value": {"name": "ParametricEQ", "bypass": False, "macros": {}}})
     time.sleep(0.5)
     s.send({"kind": "inspect", "fx": 0}); time.sleep(0.5)
     g2 = app.geom()
-    check(g["knobs"] == 16 and g2["fx_knobs"] == 16,
-          "knobs: Juno shows %d of 16, ParametricEQ %d of 16" % (g["knobs"], g2["fx_knobs"]))
+    check(g["knobs"] == 10 and g2["fx_knobs"] == 16,
+          "knobs: Poly-106 shows %d of 10, ParametricEQ %d of 16" % (g["knobs"], g2["fx_knobs"]))
 
     # -- copy, and 1 bar to 2
     p = model.new_project()
@@ -202,14 +202,14 @@ def run(s):
     s.reset()
     s.send({"kind": "cc", "chan": 0, "cc": 31, "value": 20}); time.sleep(0.4)   # Keys: knob 2 to 20
     before = app.project()["tracks"][2]
-    s.send({"kind": "instrument", "index": 2, "name": "dx7"}); time.sleep(0.3)
+    s.send({"kind": "instrument", "index": 2, "name": "poly8"}); time.sleep(0.3)
     s.settle()
     changed = app.project()["tracks"][2]["instrument"]
     app.click_rect(app.geom()["undo"]); time.sleep(0.3)
     s.settle()
     after = app.project()["tracks"][2]
-    check(changed == "dx7" and after["instrument"] == before["instrument"] and after["macros"] == before["macros"],
-          "undo: Juno to DX7 and one undo brings back the Juno with its knob (%s, %s)" % (after["instrument"], after["macros"]))
+    check(changed == "poly8" and after["instrument"] == before["instrument"] and after["macros"] == before["macros"],
+          "undo: Poly-106 to Poly-8 and one undo brings back the Poly-106 with its knob (%s, %s)" % (after["instrument"], after["macros"]))
 
     # -- the record button
     s.reset()
