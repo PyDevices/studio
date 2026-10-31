@@ -31,7 +31,7 @@ import time
 
 import audioeffects       # here, not at the first rack: its first import takes a second on the P4
 import audioinstruments
-import audioinstruments.soundfont as sf
+import audioinstruments._rack.soundfont as sf
 import audiomixer
 
 from songlink import model

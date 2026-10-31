@@ -14,9 +14,9 @@ Bank Select (CC0, the MSB, and CC32, the LSB) then Program Change choose:
   melodic channels and ``soundfont_drums`` channel 10, and the bank select
   reaches the SoundFont as it is, so a GS or XG variation bank plays the
   variation the bank has. Program Change is the GM program.
-- **MSB 80: audiocomponents' instruments** (``INSTRUMENTS``). Program
+- **MSB 80: audioinstruments' instruments** (``INSTRUMENTS``). Program
   Change *n* plays the *n*-th of them, and the LSB picks its patch.
-- **MSB 81: audiocomponents' drum machines** (``DRUM_MACHINES``), the same
+- **MSB 81: audioinstruments' drum machines** (``DRUM_MACHINES``), the same
   way.
 
 A part's instrument is made the first time its channel is played or given
@@ -46,7 +46,7 @@ tuning a semitone and the fine tuning one 14-bit step. A SoundFont part
 plays them (``soundfont``'s ``bend_range`` and ``tuning``); an
 audioinstruments from before those properties gets the bend scaled into its
 fixed two semitones, which a range under two plays right and a wider one
-clips. audiocomponents' synths and drum machines don't bend, so nothing
+clips. audioinstruments' synths and drum machines don't bend, so nothing
 reaches them. Reset All Controllers sets the RPN back to null and keeps the
 values; GM System On puts the values back too. Reverb (CC91) and chorus
 (CC93) are each part's send, but there is one reverb and one chorus on the
@@ -102,22 +102,26 @@ PERCUSSION_BANK = 128
 BANK_INSTRUMENTS = 80
 BANK_DRUM_MACHINES = 81
 
-#: audiocomponents' instruments, by program number on bank ``BANK_INSTRUMENTS``.
-#: New ones go on the end, so a song's program numbers keep their sound.
+#: audioinstruments' melodic instruments, by program number on bank
+#: ``BANK_INSTRUMENTS``. New ones go on the end, so a song's program numbers
+#: keep their sound. ``None`` is a program an earlier instrument set had and
+#: this one doesn't: it plays nothing, and keeps the numbers after it where
+#: they were.
 INSTRUMENTS = (
-    "andromeda", "arp2600", "b3", "clavinet", "cp70", "cs80", "cz101", "d50",
-    "dx7", "emulator2", "fairlight", "farfisa", "fs1r", "jp8000", "juno106",
-    "jupiter8", "k2600", "karplus", "mellotron", "microwave", "minimoog",
-    "ms20", "ms2000", "music_easel", "nord_lead", "obxa", "odyssey", "pianet",
-    "polysix", "ppg_wave", "prophet5", "prophet_vs", "rhodes", "sh101",
-    "solina", "taurus", "tb303", "virus", "vl1", "vox_continental", "vp330",
-    "wasp", "wurlitzer",
+    "polya6", "patch2600", "tonewheel3", "clavichord", "electric_grand70",
+    "poly80", None, None, None, None, None, "compact_organ", None, None,
+    "poly106", "poly8", None, None, None, None, "mono_synth", "duo20", None,
+    "west_coast_synth", None, "polyxa", "duosynth", "reed_piano", "poly6",
+    None, "poly5", None, "electric_piano", "mono101", "string_ensemble",
+    "bass_pedals", "acid303", None, None, "combo_organ", "vocoder330",
+    "hybrid_mono", "reed_piano200a", "mono_one", "state_variable_mono",
 )
 
-#: audiocomponents' drum machines, by program number on bank ``BANK_DRUM_MACHINES``.
+#: audioinstruments' drum machines, by program number on bank
+#: ``BANK_DRUM_MACHINES``, with ``None`` as above.
 DRUM_MACHINES = (
-    "acoustickit", "cr78", "dmx", "drumkits", "drumtraks", "linndrum",
-    "simmons_sdsv", "sp1200", "tr606", "tr707", "tr808", "tr909",
+    None, "rhythm78", None, None, None, None, "electronic_drums5", None,
+    "rhythm606", None, "rhythm808", "rhythm909",
 )
 
 CC_BANK_MSB, CC_BANK_LSB = 0, 32
@@ -231,7 +235,7 @@ def _shared_voices():
     """``soundfont.Voices``, or None from an audioinstruments that predates
     it: then each part has its own voices, summed by a mixer."""
     try:
-        from audioinstruments.soundfont import Voices
+        from audioinstruments._rack.soundfont import Voices
     except ImportError:
         return None
     return Voices
@@ -339,7 +343,7 @@ class Module:
     With the default instruments every SoundFont part plays on one shared
     ``soundfont.Voices`` of ``voices`` voices. ``instruments`` (True on a
     desktop, False on a board until its cost is measured there) lets banks
-    80 and 81 play audiocomponents' instruments: each one's output is a
+    80 and 81 play audioinstruments' instruments: each one's output is a
     voice of ``mixer``, an ``audiomixer.Mixer`` the pool plays into as its
     last voice. Without them the pool is the source, as it always was.
     A ``create(name, rate, channels, bank)`` of your own (stand-ins in a
@@ -442,9 +446,9 @@ class Module:
             return None
         if self.loaded is None:
             try:
-                import audioinstruments.soundfont  # dotted: a lazy package's from-import fails on MicroPython
+                import audioinstruments._rack.soundfont  # dotted: a lazy package's from-import fails on MicroPython
 
-                self.loaded = audioinstruments.soundfont.open_bank(self.bank)
+                self.loaded = audioinstruments._rack.soundfont.open_bank(self.bank)
             except Exception as e:
                 self.error = e
                 return None
@@ -613,9 +617,9 @@ class Module:
         """The GM drum program numbers the bank has kits for, in order."""
         if self._kits is None:
             try:
-                import audioinstruments.soundfont  # dotted: a lazy package's from-import fails on MicroPython
+                import audioinstruments._rack.soundfont  # dotted: a lazy package's from-import fails on MicroPython
 
-                soundfont = audioinstruments.soundfont
+                soundfont = audioinstruments._rack.soundfont
                 self._kits = [p for p, _ in soundfont.open_bank(self.bank).programs(PERCUSSION_BANK)]
             except Exception:
                 self._kits = [p for p, _ in GM_KITS]
@@ -889,7 +893,7 @@ class Module:
         """GM System On: every part back to bank 0, program 0, volume 100,
         pan centre, pedal up, bend centred, two semitones of bend and no
         tuning; reverb 40 and chorus 0. A part
-        playing one of audiocomponents' instruments lets it go, and plays
+        playing one of audioinstruments' instruments lets it go, and plays
         the SoundFont again from its next note."""
         for part in self.parts:
             part.reset()
@@ -937,6 +941,19 @@ class Module:
     def set_chorus(self, level):
         self.chorus_level = level
         _set_mix(self.chorus, level)
+
+    def fill(self):
+        """Let the parts' instruments move their notes and knobs on: call it
+        before each pull of ``output``, or every 10 to 20 ms where something
+        else pulls it. An audioinstruments instrument on MicroPython takes
+        notes and knobs into the sound in ``fill()``; on CPython, and for a
+        SoundFont part, it does nothing."""
+        for part in self.parts:
+            inst = part.inst
+            if inst is not None and part.inst_name not in (MELODIC, DRUMS):
+                fill = getattr(inst, "fill", None)
+                if fill is not None:
+                    fill()
 
     def close(self):
         for part in self.parts:

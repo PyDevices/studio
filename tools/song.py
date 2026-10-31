@@ -10,11 +10,11 @@ Every part chooses its own sound at its first tick with Bank Select and
 Program Change, so nothing needs setting up on the module. The parts come
 in one at a time, two bars apart, so each one can be heard arriving:
 
-    bar 2   channel 1   juno106 pad (bank 80), its Cutoff macro (CC 103) swept from bar 8
-    bar 4   channel 2   minimoog bass (bank 80, patch 1 by bank LSB)
-    bar 6   channel 10  tr808 (bank 81)
-    bar 8   channel 3   rhodes, panned left to right by CC 10 from bar 10
-    bar 10  channel 4   prophet5 lead, faded up by CC 7
+    bar 2   channel 1   poly106 pad (bank 80), its cutoff macro (CC 102) swept from bar 8
+    bar 4   channel 2   mono_synth bass (bank 80, patch 1 by bank LSB)
+    bar 6   channel 10  rhythm808 (bank 81)
+    bar 8   channel 3   electric_piano, panned left to right by CC 10 from bar 10
+    bar 10  channel 4   poly5 lead, faded up by CC 7
     bar 14  the end
 
 Bar 1 holds only the setup and an Identity Request, so the module has a
@@ -102,48 +102,48 @@ ROOTS = (45, 41, 36, 43)
 def song():
     tracks = []
 
-    pad = Track("juno106 pad", 0)
+    pad = Track("poly106 pad", 0)
     pad.setup(BANK_INSTRUMENTS, 0, 14)
     for bar in range(2, BARS + 1):
         for key in CHORDS[bar % 4]:
             pad.note(_bar(bar), BAR - 20, key, 80)
-    pad.ramp(103, _bar(8), _bar(12), 20, 120)  # Cutoff
-    tracks.append((pad, 2, "juno106"))
+    pad.ramp(102, _bar(8), _bar(12), 20, 120)  # vcf_freq
+    tracks.append((pad, 2, "poly106"))
 
-    bass = Track("minimoog bass", 1)
+    bass = Track("mono_synth bass", 1)
     bass.setup(BANK_INSTRUMENTS, 1, 20)
     for bar in range(4, BARS + 1):
         root = ROOTS[bar % 4]
         for eighth in range(8):
             bass.note(_bar(bar, eighth / 2), PPQ // 2 - 30, root + (12 if eighth % 4 == 3 else 0), 100)
-    tracks.append((bass, 4, "minimoog"))
+    tracks.append((bass, 4, "mono_synth"))
 
-    drums = Track("tr808", 9)
+    drums = Track("rhythm808", 9)
     drums.setup(BANK_DRUM_MACHINES, 0, 10)
     for bar in range(6, BARS + 1):
         for beat in range(4):
             drums.note(_bar(bar, beat), PPQ // 4, 36 if beat % 2 == 0 else 38, 110)
         for eighth in range(8):
             drums.note(_bar(bar, eighth / 2), PPQ // 8, 42, 70)
-    tracks.append((drums, 6, "tr808"))
+    tracks.append((drums, 6, "rhythm808"))
 
-    keys = Track("rhodes", 2)
+    keys = Track("electric_piano", 2)
     keys.setup(BANK_INSTRUMENTS, 0, 32)
     for bar in range(8, BARS + 1):
         for half in (0, 2):
             for key in CHORDS[bar % 4]:
                 keys.note(_bar(bar, half + 0.5), PPQ, key + 12, 85)
     keys.ramp(10, _bar(10), _bar(13), 0, 127)
-    tracks.append((keys, 8, "rhodes"))
+    tracks.append((keys, 8, "electric_piano"))
 
-    lead = Track("prophet5 lead", 3)
+    lead = Track("poly5 lead", 3)
     lead.setup(BANK_INSTRUMENTS, 0, 30)
     melody = (76, 74, 72, 74, 76, 76, 76, 79, 77, 76, 74, 72, 71, 72, 74, 76)
     for i in range((BARS - 9) * 4):
         lead.note(_bar(10, i), PPQ - 40, melody[i % len(melody)], 100)
     lead.ramp(7, _bar(10), _bar(11), 40, 120, 16)
     lead.add(0, IDENTITY_REQUEST)  # the module answers through its MIDI out
-    tracks.append((lead, 10, "prophet5"))
+    tracks.append((lead, 10, "poly5"))
     return tracks
 
 

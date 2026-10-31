@@ -9,8 +9,8 @@ real SoundFont.
 A kit (bank 128) with a kick, a snare, a closed hi-hat and an open one, the
 two hats in one exclusive class, and a looped sawtooth on program 0. The
 samples are noise and a saw from a fixed seed, so every run writes the same
-file. It uses audiocomponents' SoundFont writer (``tests/support/sf2_builder.py``
-in an audiocomponents checkout: ``$AUDIOCOMPONENTS_LIB/../tests/support``),
+file. It uses audioinstruments' SoundFont writer (``tests/support/sf2_builder.py``
+in an audioinstruments checkout: ``$AUDIOINSTRUMENTS_DIR/tests/support``),
 which needs ``audioinstruments`` importable.
 """
 
@@ -20,17 +20,17 @@ import sys
 
 
 def _support():
-    lib = os.environ.get("AUDIOCOMPONENTS_LIB")
     here = os.path.dirname(os.path.abspath(__file__))
-    candidates = [os.path.join(lib, "..", "tests", "support")] if lib else []
+    explicit = os.environ.get("AUDIOINSTRUMENTS_DIR")
+    candidates = [os.path.join(explicit, "tests", "support")] if explicit else []
     parent = here
     for _ in range(4):
         parent = os.path.dirname(parent)
-        candidates.append(os.path.join(parent, "audiocomponents", "tests", "support"))
+        candidates.append(os.path.join(parent, "audioinstruments", "tests", "support"))
     for c in candidates:
         if os.path.isfile(os.path.join(c, "sf2_builder.py")):
             return os.path.abspath(c)
-    raise SystemExit("no audiocomponents checkout with tests/support/sf2_builder.py (set AUDIOCOMPONENTS_LIB)")
+    raise SystemExit("no audioinstruments checkout with tests/support/sf2_builder.py (set AUDIOINSTRUMENTS_DIR)")
 
 
 def _noise(seconds, decay, seed, rate):

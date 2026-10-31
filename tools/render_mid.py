@@ -10,7 +10,7 @@
 Each event is fed to a ``soundmodule.engine.Module`` set up as the headless
 runner sets it up, before the block it falls in is pulled, so timing is to
 the block. Runs on CPython, MicroPython and CircuitPython. ``--path`` puts
-folders first on ``sys.path`` (audiocomponents' ``lib``, this repository's
+folders first on ``sys.path`` (audioinstruments' and audioeffects' ``lib``, this repository's
 ``lib``). ``--plant`` breaks the module in a known way first: one of
 ``engine_contract.PLANTS``, or ``note-off-dropped`` (every 5th note-off is
 lost), so the gate can show its checks fail.
@@ -115,6 +115,7 @@ def main(argv):
                     while k < len(events) and events[k][0] <= now:
                         module.feed(events[k][1])
                         k += 1
+            module.fill()
             data = bytes(audiocore.get_buffer(module.output)[1])
             wav.write(data)
             frames += run._frames(data)

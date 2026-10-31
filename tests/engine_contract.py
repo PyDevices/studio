@@ -34,7 +34,7 @@ from soundmodule import engine, pipes, run  # noqa: E402
 PLANTS = ("bank-ignored", "lsb-ignored", "eager-bank", "macro-shift", "level-linear", "identity-wrong",
           "identity-any-device", "tally-final", "pipe-drops-peek", "frames-miscounted",
           "rpn-ignored", "rpn-null-ignored", "rpn-lsb-kept", "reset-keeps-bend", "reset-keeps-expression",
-          "fixed-range-unscaled", "reset-keeps-rpn", "volume-as-macro", "sends-last-wins")
+          "fixed-range-unscaled", "reset-keeps-rpn", "volume-as-macro", "sends-last-wins", "fill-skipped")
 
 RESULTS = [0, 0]
 
@@ -82,6 +82,10 @@ class Fake:
         self.output = object()
         self.ccs = []
         self.bends = []
+        self.fills = 0
+
+    def fill(self):
+        self.fills += 1
 
     def set_macro(self, i, value):
         self.macros[i] = value
@@ -153,27 +157,45 @@ def check_gm_without_setup():
 
 def check_bank_instruments():
     m, made = module()
-    juno = engine.INSTRUMENTS.index("juno106")
-    select(m, 0, engine.BANK_INSTRUMENTS, 0, juno)
+    poly = engine.INSTRUMENTS.index("poly106")
+    select(m, 0, engine.BANK_INSTRUMENTS, 0, poly)
     part = m.parts[0]
-    check("bank 80, program n plays the n-th instrument", part.inst_name == "juno106", repr(part.inst_name))
+    check("bank 80, program n plays the n-th instrument", part.inst_name == "poly106", repr(part.inst_name))
     check("the instrument plays on its own mixer voice", m.mixer.voice[0].playing is part.inst.output)
-    check("its name has its patch", m.name(0) == "juno106: Default", m.name(0))
-    select(m, 9, engine.BANK_DRUM_MACHINES, 0, engine.DRUM_MACHINES.index("tr808"))
-    check("bank 81, program n plays the n-th drum machine", m.parts[9].inst_name == "tr808",
+    check("its name has its patch", m.name(0) == "poly106: Default", m.name(0))
+    select(m, 9, engine.BANK_DRUM_MACHINES, 0, engine.DRUM_MACHINES.index("rhythm808"))
+    check("bank 81, program n plays the n-th drum machine", m.parts[9].inst_name == "rhythm808",
           repr(m.parts[9].inst_name))
     select(m, 3, engine.BANK_INSTRUMENTS, 0, 127)
     m.feed(bytes((0x93, 60, 100)))
     check("a program past the last instrument plays nothing", m.parts[3].inst is None and m.parts[3].notes == 0)
+    retired = engine.INSTRUMENTS.index(None)
+    select(m, 4, engine.BANK_INSTRUMENTS, 0, retired)
+    m.feed(bytes((0x94, 60, 100)))
+    check("a program an earlier instrument set had plays nothing", m.parts[4].inst is None and m.parts[4].notes == 0)
+    check("program numbers of the instruments that stayed are the ones songs used",
+          engine.INSTRUMENTS[14] == "poly106" and engine.INSTRUMENTS[15] == "poly8"
+          and engine.INSTRUMENTS[20] == "mono_synth" and engine.DRUM_MACHINES[10] == "rhythm808")
+
+
+def check_fill():
+    m, made = module()
+    select(m, 0, engine.BANK_INSTRUMENTS, 0, engine.INSTRUMENTS.index("poly106"))
+    m.feed(bytes((0x91, 60, 100)))  # a General MIDI part, with a SoundFont stand-in
+    m.fill()
+    m.fill()
+    synth = m.parts[0].inst
+    check("fill() reaches a synth part's instrument, each time", synth.fills == 2, repr(synth.fills))
+    check("and leaves a SoundFont part's alone", m.parts[1].inst.fills == 0, repr(m.parts[1].inst.fills))
 
 
 def check_lsb_patch():
     m, made = module()
-    select(m, 1, engine.BANK_INSTRUMENTS, 1, engine.INSTRUMENTS.index("minimoog"))
+    select(m, 1, engine.BANK_INSTRUMENTS, 1, engine.INSTRUMENTS.index("mono_synth"))
     inst = m.parts[1].inst
     check("the bank LSB picks the instrument's patch", inst is not None and inst.program == 1,
           repr(inst and inst.program))
-    check("and the name says so", m.name(1) == "minimoog: Second", m.name(1))
+    check("and the name says so", m.name(1) == "mono_synth: Second", m.name(1))
 
 
 def check_bank_waits_for_program():
@@ -238,7 +260,7 @@ def check_tally():
     run.report(m, 9, [0, 0], log=lines.append)
     text = "\n".join(lines)
     check("the report says what played, not what the bank was left at",
-          "2 notes, bank 80:0 program 14, juno106" in text, text)
+          "2 notes, bank 80:0 program 14, poly106" in text, text)
 
 
 def rpn(m, channel, msb, lsb, *data):
@@ -359,21 +381,25 @@ def check_real(tmp):
     """A real instrument heard, and the runner's frames counted right."""
     try:
         import audiocore
-        import audioinstruments  # noqa: F401
+        import audioinstruments
     except ImportError as e:
         print("skip a real instrument: %s" % (e,))
         return
     import array
 
+    named = [n for n in engine.INSTRUMENTS + engine.DRUM_MACHINES if n is not None]
+    missing = [n for n in named if n not in audioinstruments.ALL]
+    check("every instrument the tables name is in audioinstruments", not missing, repr(missing))
     m = engine.Module(48000, 2, effects=False, instruments=True)
-    select(m, 0, engine.BANK_INSTRUMENTS, 0, engine.INSTRUMENTS.index("juno106"))
+    select(m, 0, engine.BANK_INSTRUMENTS, 0, engine.INSTRUMENTS.index("poly106"))
     m.feed(bytes((0x90, 57, 100)))
     peak = 0
     for _ in range(12):
+        m.fill()
         for v in array.array("h", bytes(audiocore.get_buffer(m.output)[1])):
             if v > peak or -v > peak:
                 peak = v if v > 0 else -v
-    check("a real juno106 is heard", peak > 500 and m.name(0) == "juno106: Default", "peak %d" % peak)
+    check("a real poly106 is heard", peak > 500 and m.name(0).startswith("poly106: "), "peak %d" % peak)
     m.feed(bytes((0x80, 57, 0)))
 
     class Quiet:
@@ -538,6 +564,8 @@ def plant(name):
                 self.params = params
 
         engine.Part.reset = reset
+    elif name == "fill-skipped":
+        M.fill = lambda self: None
     elif name == "frames-miscounted":
         run._frames = lambda data: len(data) // 8
     else:
@@ -555,6 +583,7 @@ def main(argv):
     print("soundmodule contract on %s %s" % (sys.implementation.name, sys.platform))
     check_gm_without_setup()
     check_bank_instruments()
+    check_fill()
     check_lsb_patch()
     check_bank_waits_for_program()
     check_macro_ccs()

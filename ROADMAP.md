@@ -8,7 +8,7 @@ It grows one part at a time, on the desktop interpreters first.
 ## Sound module
 
 - Patch and macro names that DAWs can read, from the catalog files
-  audiocomponents publishes with each release.
+  audioinstruments publishes with each release.
 - A SysEx request that returns the module's instruments, patches, effects and
   controls, shaped after MIDI-CI Property Exchange.
 - On an ESP32-P4 as a USB MIDI device, with 24 voices at 48 kHz stereo.

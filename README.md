@@ -8,10 +8,11 @@ studio is used from a clone, beside the libraries it builds on:
 
 ```bash
 git clone https://github.com/PyDevices/studio
-git clone https://github.com/PyDevices/audiocomponents
+git clone https://github.com/PyDevices/audioinstruments
+git clone https://github.com/PyDevices/audioeffects
 git clone https://github.com/PyDevices/audiodsp
 pip install ./audiodsp numpy
-pip install --no-deps ./audiocomponents/lib/audioinstruments ./audiocomponents/lib/audioeffects
+pip install --no-deps ./audioinstruments ./audioeffects/lib/audioeffects
 ```
 
 ## Try it

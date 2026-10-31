@@ -7,7 +7,7 @@ planted fault, on a bank ``vamp_bank.py`` writes.
 
     python -m unittest discover -s tests
 
-The interpreters and audiocomponents are found as ``test_engine.py`` finds
+The interpreters and the audio libraries are found as ``test_engine.py`` finds
 them. hmilink comes from ``$HMILINK_PATH`` (the folder holding the
 ``hmilink`` package), else a pydevices checkout beside this one
 (``pydevices/hmilink``), else Ostinato's ``vendor/lib``. Whatever is missing
@@ -27,7 +27,7 @@ ROOT = TESTS.parent
 LIB = str(ROOT / "lib")
 sys.path.insert(0, str(TESTS))
 
-from test_engine import _audiocomponents_lib, _find  # noqa: E402
+from test_engine import _find, audio_libs  # noqa: E402
 
 ENGINE_PLANTS = ("nodelay", "nocancel", "nomute", "norack", "nolive", "nochoke")
 LINK_PLANTS = ("nomute",)
@@ -45,9 +45,14 @@ def _hmilink():
     return None
 
 
+def _with_audio_path(env):
+    env["PYTHONPATH"] = os.pathsep.join(audio_libs() + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
+    return env
+
+
 def _cpython_has_audio():
     r = subprocess.run([sys.executable, "-c", "import audioinstruments, audioeffects, audiomixer"],
-                       capture_output=True)
+                       capture_output=True, env=_with_audio_path(dict(os.environ)))
     return r.returncode == 0
 
 
@@ -68,7 +73,7 @@ class Vamp(unittest.TestCase):
             cls.why = "this Python has no audioinstruments: Vamp's checks did NOT run"
             return
         r = subprocess.run([sys.executable, str(TESTS / "vamp_bank.py"), os.path.join(cls.tmp.name, "vamp.sf2")],
-                           capture_output=True, text=True, timeout=120)
+                           capture_output=True, text=True, timeout=120, env=_with_audio_path(dict(os.environ)))
         if r.returncode:
             cls.why = "no check bank: " + (r.stdout + r.stderr).strip().splitlines()[-1]
             return
@@ -87,13 +92,12 @@ class Vamp(unittest.TestCase):
         path = [LIB] + ([hm] if hm else [])
         env = dict(os.environ)
         if kind == "cpython":
-            env["PYTHONPATH"] = os.pathsep.join(path + [env.get("PYTHONPATH", "")])
+            env["PYTHONPATH"] = os.pathsep.join(path + audio_libs() + [env.get("PYTHONPATH", "")])
             return [sys.executable, str(TESTS / script), self.bank], env
         exe = _find("PYDEVICES_MICROPYTHON", "micropython")
         if exe is None:
             _skip(self, "no micropython: Vamp's %s did NOT run on it" % script)
-        ac = _audiocomponents_lib()
-        env["MICROPYPATH"] = ":".join(path + ([ac] if ac else []) + [".frozen"])
+        env["MICROPYPATH"] = ":".join(path + audio_libs() + [".frozen"])
         return [exe, "-X", "heapsize=64M", str(TESTS / script), self.bank], env
 
     def _run(self, kind, script, plant=None):

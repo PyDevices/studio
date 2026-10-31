@@ -2,8 +2,8 @@
 
 ## Run the tests
 
-From a Python that has audiocomponents installed (so the CPython
-real-instrument checks run):
+From a Python that has audiodsp installed, with audioinstruments and audioeffects
+cloned beside this repository (so the real-instrument checks run):
 
 ```bash
 python -m unittest discover -s tests

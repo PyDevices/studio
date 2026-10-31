@@ -45,6 +45,6 @@ soundmodule: cpython 3.12.3 (linux): 0 bytes of MIDI, 0 Identity Requests answer
 
 Open `take.wav` in any player. The same run works on a MicroPython or
 CircuitPython that has audiodsp built in: `micropython -X heapsize=64M
-tools/render_mid.py ...`, with audiocomponents' `lib/` on `MICROPYPATH`.
+tools/render_mid.py ...`, with audioinstruments' and audioeffects' `lib/` on `MICROPYPATH`.
 
 Next: [play the module from a DAW](../guides/play-the-sound-module.md).

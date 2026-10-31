@@ -29,7 +29,7 @@ import vamp; vamp.run()
 
 ## On a desktop MicroPython
 
-With studio's `lib/`, hmilink, audiocomponents' `lib/` and pydevices' `lib/`
+With studio's `lib/`, hmilink, audioinstruments' and audioeffects' `lib/` and pydevices' `lib/`
 on `MICROPYPATH`:
 
 ```bash

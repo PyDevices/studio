@@ -7,7 +7,7 @@ studio holds three applications that share a song model and an audio stack.
   its `output`, from a headless loop (`soundmodule.run`), a UI or a test.
 - **Ostinato** ([`apps/ostinato`](../../apps/ostinato)) is the sequencer and
   song editor. LVGL draws its interface in a browser worker or a desktop
-  window, and audiocomponents makes the sound.
+  window, and audioinstruments makes the sound.
 - **Vamp** ([`lib/vamp`](../../lib/vamp)) plays Ostinato's songs on a
   MicroPython with no screen of its own. Its panels are the Ostinato window
   and a browser page, over the network.
@@ -21,7 +21,8 @@ DEV-KIT's General MIDI player, runs this engine.
   give MIDI transports and the link between a device and its panels.
 - Adafruit's `adafruit_midi` parses MIDI messages.
 - [audiodsp](https://github.com/PyDevices/audiodsp) supplies the DSP kernels.
-- [audiocomponents](https://github.com/PyDevices/audiocomponents) supplies the
+- [audioinstruments](https://github.com/PyDevices/audioinstruments) and
+  [audioeffects](https://github.com/PyDevices/audioeffects) supply the
   instruments and effects.
 
 When two applications need the same piece, it moves down: into `lib/` here
