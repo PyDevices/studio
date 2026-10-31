@@ -60,7 +60,7 @@ class RelayIn(PortIn):
 
 
 class Engine:
-    def __init__(self, sample_rate, voice="minimoog", parse="adafruit", plant="", lead_ms=0):
+    def __init__(self, sample_rate, voice="mono_synth", parse="adafruit", plant="", lead_ms=0):
         self.sample_rate = sample_rate
         self.voice = voice
         self.inst = audioinstruments.create(voice, sample_rate=sample_rate, channel_count=1)

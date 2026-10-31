@@ -14,5 +14,9 @@
   instruments' notes and knobs into the sound: call it before each pull of
   `output` (`soundmodule.run` and `render_mid.py` do). MicroPython needs ulab
   built in as well as audiodsp.
+- Ostinato plays audioinstruments' 33 instruments. Its new-project tracks, demo
+  song and sketches use the rack's names, knob labels and drum notes; the
+  browser app loads numpy for them. `tools/sketch_render.py` renders each
+  song's tracks and checks every one makes sound.
 - A gate that plays ordinary General MIDI files through the module and
   measures the result.

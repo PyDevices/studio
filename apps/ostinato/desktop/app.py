@@ -53,7 +53,7 @@ def main():
         project = json.load(f)
     model.migrate(project)
     model._bump_ids(project)
-    live = model.track("melodic", "karplus", "Live")
+    live = model.track("melodic", "electric_piano", "Live")
     live["volume"] = 110
     project["tracks"].append(live)
     project["song_mode"] = True

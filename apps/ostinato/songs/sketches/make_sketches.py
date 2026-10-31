@@ -23,9 +23,10 @@ BAR = 4 * Q
 HERE = os.path.dirname(os.path.abspath(__file__))
 CATALOG = json.load(open(os.path.join(HERE, "..", "..", "assets", "catalog.json")))
 
-# The acoustic kit's General MIDI map.
+# The drum notes the sketches play, on rhythm909: it has the full set (kick,
+# rim, snare, toms, hats, crash and two rides) that the acoustic kit gave them.
 KICK, STICK, SNARE, FLOOR, HAT, PEDAL, LOWTOM, OPEN, MIDTOM, HITOM, CRASH, RIDE, BELL = (
-    36, 37, 38, 41, 42, 44, 45, 46, 47, 48, 49, 51, 53)
+    36, 37, 38, 41, 42, 44, 45, 46, 47, 48, 49, 51, 59)
 
 
 def preset(effect, patch):
@@ -189,13 +190,13 @@ def lowrey_field():
         l_break.n(b * BAR, BAR - 12, p, 92)
 
     tracks = [
-        track(1, "Drums", "drums", "acoustickit", [d_in, d_verse, d_chorus, d_break, d_end], patch=2, volume=96),
-        track(2, "Bass", "melodic", "minimoog", [b_pedal, b_verse, b_chorus, b_end], patch=1, volume=88),
-        track(3, "Keys", "melodic", "b3", [k_intro, k_verse, k_chorus, k_end],
-              macros={1: 70, 2: 127, 3: 96, 4: 44, 5: 112, 6: 28, 7: 60, 9: 26}, volume=82, pan=52,
+        track(1, "Drums", "drums", "rhythm909", [d_in, d_verse, d_chorus, d_break, d_end], patch=3, volume=70),
+        track(2, "Bass", "melodic", "mono_synth", [b_pedal, b_verse, b_chorus, b_end], patch=1, volume=112),
+        track(3, "Keys", "melodic", "tonewheel3", [k_intro, k_verse, k_chorus, k_end],
+              macros={0: 70, 1: 127, 2: 96, 3: 44, 7: 26, 8: 127}, volume=110, pan=52,
               rack=[preset("Reverb", 5)]),
-        track(4, "Lead", "melodic", "minimoog", [l_hook, l_break], patch=0, macros={4: 18},
-              volume=84, pan=76, rack=[preset("Overdrive", 4), preset("AnalogDelay", 0), preset("Reverb", 4)]),
+        track(4, "Lead", "melodic", "mono_synth", [l_hook, l_break], patch=4, macros={9: 18},
+              volume=112, pan=76, rack=[preset("Overdrive", 4), preset("AnalogDelay", 0), preset("Reverb", 4)]),
     ]
     scenes = [
         (-1, -1, 0, -1, 2),   # the organ alone
@@ -280,12 +281,12 @@ def low_sun():
     l_out = Pat(4, 26).n(Q, 3 * BAR, 74, 88)
 
     tracks = [
-        track(1, "Drums", "drums", "acoustickit", [d_enter, d_a, d_b, d_out], patch=2, volume=90),
-        track(2, "Bass", "melodic", "taurus", [b_a, b_b, b_out], macros={2: 22}, volume=92),
-        track(3, "Keys", "melodic", "solina", [k_a, k_b, k_out], macros={7: 40}, volume=80,
+        track(1, "Drums", "drums", "rhythm909", [d_enter, d_a, d_b, d_out], patch=1, volume=72),
+        track(2, "Bass", "melodic", "bass_pedals", [b_a, b_b, b_out], macros={9: 22}, volume=100),
+        track(3, "Keys", "melodic", "string_ensemble", [k_a, k_b, k_out], macros={0: 40}, volume=80,
               rack=[preset("Chorus", 3), preset("Reverb", 6)]),
-        track(4, "Lead", "melodic", "minimoog", [l_a, l_b, l_out], patch=0, macros={4: 34},
-              volume=82, pan=70, rack=[preset("TapeDelay", 1), preset("Reverb", 9)]),
+        track(4, "Lead", "melodic", "mono_synth", [l_a, l_b, l_out], patch=4, macros={9: 34},
+              volume=112, pan=70, rack=[preset("TapeDelay", 1), preset("Reverb", 9)]),
     ]
     scenes = [
         (-1, -1, 0, -1, 1),   # strings alone
@@ -391,11 +392,11 @@ def strange_days_out():
         l_bridge.n(s, l - 6, p, 92)
 
     tracks = [
-        track(1, "Drums", "drums", "acoustickit", [d_intro, d_drop, d_rock, d_bossa, d_end], patch=0, volume=94),
-        track(2, "Bass", "melodic", "rhodes", [b_riff, b_intro, b_end], macros={4: 0}, volume=96, pan=60),
-        track(3, "Keys", "melodic", "vox_continental", [k_skank, k_hold], volume=78, pan=44,
+        track(1, "Drums", "drums", "rhythm909", [d_intro, d_drop, d_rock, d_bossa, d_end], patch=0, volume=72),
+        track(2, "Bass", "melodic", "electric_piano", [b_riff, b_intro, b_end], macros={6: 0}, volume=127, pan=60),
+        track(3, "Keys", "melodic", "combo_organ", [k_skank, k_hold], volume=120, pan=44,
               rack=[preset("Reverb", 4)]),
-        track(4, "Lead", "melodic", "odyssey", [l_hook, l_bridge], macros={15: 20}, volume=80, pan=84,
+        track(4, "Lead", "melodic", "duo20", [l_hook, l_bridge], volume=120, pan=84,
               rack=[preset("TapeDelay", 2), preset("Reverb", 5)]),
     ]
     scenes = [

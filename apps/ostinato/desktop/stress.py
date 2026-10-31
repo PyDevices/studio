@@ -33,8 +33,8 @@ import audioinstruments  # noqa: E402
 from engine import Puller  # noqa: E402
 
 SR = 48000
-INSTRUMENTS = ["tr808", "virus", "juno106", "dx7", "minimoog", "karplus", "rhodes", "jupiter8", "tb303", "solina"]
-RACKS = {"juno106": ("Chorus", "Reverb"), "dx7": ("DigitalDelay",), "virus": ("Compressor",)}
+INSTRUMENTS = ["rhythm808", "mono_synth", "poly106", "poly8", "electric_piano", "string_ensemble", "poly5", "acid303", "tonewheel3", "polya6"]
+RACKS = {"poly106": ("Chorus", "Reverb"), "poly8": ("DigitalDelay",), "mono_synth": ("Compressor",)}
 CREATE_LOCK = threading.Lock() if os.environ.get("STRESS_CREATE_LOCK") else None
 PLANT = os.environ.get("STRESS_PLANT")       # "detune": thread 3 plays one note a semitone sharp; "lvgl": one label differs
 

@@ -1,27 +1,32 @@
 {
-  "pydevices": {
-    "version": "0.7.7.dev1",
-    "file": "pydevices-0.7.7.dev1-py3-none-any.whl",
-    "sha256": "c8abc1b0e79ec00b593847011172dbf0ad22dffe5bb3539a28d2d49cc608eb26"
+  "numpy": {
+    "version": "2.4.3",
+    "file": "numpy-2.4.3-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+    "sha256": "0cad9c1b91f0082e4f959bc0e0bf5835a2efbba6ab3b1e9d1fe6e7e564cca98e"
   },
-  "pydevices-audiodsp": {
-    "version": "0.6.8.dev4",
-    "file": "pydevices_audiodsp-0.6.8.dev4-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
-    "sha256": "e0d85c14e03ab9170437cec90b06b1349145e78ec71ac7b31df828a7bacf2410"
+  "pydevices": {
+    "version": "0.7.8",
+    "file": "pydevices-0.7.8-py3-none-any.whl",
+    "sha256": "482a52835d9d7b66fdef24a024b627235f0dda7e9f3c362cdacf4c8995d78349"
+  },
+  "omnipython-audiodsp": {
+    "version": "0.6.13.dev1",
+    "file": "omnipython_audiodsp-0.6.13.dev1-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+    "sha256": "7416748bbba27d9db7e0bf635510de05ef66c28521644c86ccf36cef87f5979a"
   },
   "pydevices-lvgl": {
     "version": "9.5.52",
     "file": "pydevices_lvgl-9.5.52-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
     "sha256": "6931367bbd325883560f55bc72e82c0375970b283663595b5d09ec814aaf00a5"
   },
-  "pydevices-audioinstruments": {
-    "version": "0.4.1.dev3",
-    "file": "pydevices_audioinstruments-0.4.1.dev3-py3-none-any.whl",
-    "sha256": "692d49dc8a45732c4ed5ba4d3dc8daebe25712a03b9bb72bfea0429f98bbd613"
+  "omnipython-audioinstruments": {
+    "version": "0.5.0",
+    "file": "omnipython_audioinstruments-0.5.0-py3-none-any.whl",
+    "sha256": "5052d99f46768ee1a49de124ddfc7fbdd0154932a28c91ef7d2ab0fcb8fa9453"
   },
-  "pydevices-audioeffects": {
-    "version": "0.4.1.dev3",
-    "file": "pydevices_audioeffects-0.4.1.dev3-py3-none-any.whl",
-    "sha256": "e32eb49b10a4da785ae109095fbca99c553d1c7a9b7f95fc02847376aab124a1"
+  "omnipython-audioeffects": {
+    "version": "0.5.0.dev1",
+    "file": "omnipython_audioeffects-0.5.0.dev1-py3-none-any.whl",
+    "sha256": "45910b049cad637c2063c4129e9cb744bbc4f705230bb99f7bdec0a6849c8dac"
   }
 }

@@ -42,8 +42,8 @@ def main():
     shared = tree("songlink", "songlink/", LIB, "lib/")
     ui = {"packages": [whl("pydevices"), whl("pydevices-lvgl")],
           "files": {**shared, **tree("app/ui"), **tree("vendor/board")}}
-    engine = {"packages": [whl("pydevices"), whl("pydevices-audiodsp"), whl("pydevices-audioeffects"),
-                           whl("pydevices-audioinstruments")],
+    engine = {"packages": [whl("pydevices"), whl("numpy"), whl("omnipython-audiodsp"), whl("omnipython-audioeffects"),
+                           whl("omnipython-audioinstruments")],
               "files": {**shared, **tree("app/engine"), **tree("vendor/lib")}}
     cfg = {"ui": ui, "engine": engine, "versions": {k: v["version"] for k, v in w.items()}}
     (ROOT / "app" / "boot_config.js").write_text(

@@ -11,7 +11,7 @@ import fs from "fs";
 const root = new URL("../", import.meta.url).pathname;
 const wheels = JSON.parse(fs.readFileSync(root + "wheels.json", "utf8"));
 const py = await loadPyodide({ indexURL: root + "vendor/pyscript/pyodide/" });
-for (const n of ["pydevices-audiodsp", "pydevices-audioeffects", "pydevices-audioinstruments"]) {
+for (const n of ["numpy", "omnipython-audiodsp", "omnipython-audioeffects", "omnipython-audioinstruments"]) {
   await py.loadPackage(root + "vendor/wheels/" + wheels[n].file);
 }
 const out = py.runPython(`
@@ -38,19 +38,20 @@ def audible_pads(name, patch, notes):
     return out
 def labels(comp, mod):
     cls = type(comp)
-    ml = list(getattr(comp, "macro_labels", None) or getattr(cls, "MACRO_LABELS", ()) or getattr(mod, "MACRO_LABELS", ()) or ())
+    ml = [pretty(l) for l in (getattr(comp, "macro_labels", None) or getattr(cls, "MACRO_LABELS", ()) or getattr(mod, "MACRO_LABELS", ()) or ())]
     modes = getattr(cls, "MACRO_MODES", None) or getattr(mod, "MACRO_MODES", {}) or {}
     return ml, [modes.get(i, "UNIPOLAR") for i in range(len(ml))]
 inst = {}
-def max_voices(mod):
-    # Instruments don't expose their voice count yet (audiocomponents#167):
-    # it's a local in each create(), so read it from the source until they do.
+def pretty(label):
+    """'vcf_freq' as 'VCF Freq': the rack names its knobs in snake case."""
+    keep = {"vcf", "vco", "vca", "lfo", "dco", "hpf", "lpf", "adsr", "eg", "env", "bd", "sd", "oh", "cy", "hh", "pwm",
+            "fm", "pm", "mg", "fx", "iv", "db", "bpm", "sub", "osc"}
+    if "_" not in label and not label.islower():
+        return label
     import re
-    try:
-        m = re.search(r"\\bMAX_VOICES\\s*=\\s*(\\d+)", open(mod.__file__).read())
-    except (OSError, AttributeError):
-        return None
-    return int(m.group(1)) if m else None
+    label = re.sub(r"^db(\\d+|_iv)$", lambda m: "drawbar_" + (m.group(1).replace("_", "") or ""), label)
+    words = label.split("_")
+    return " ".join(w.upper() if w in keep and w not in ("sub", "osc", "env") else w.capitalize() for w in words)
 drums = set(audioinstruments.DRUM_MACHINES)
 for name in audioinstruments.ALL:
     mod = audioinstruments.load(name)
@@ -64,14 +65,14 @@ for name in audioinstruments.ALL:
         "patches": {str(k): v[0] for k, v in sorted(patches.items())},
         "patch_values": {str(k): list(v[1]) for k, v in sorted(patches.items()) if len(v) > 1},
         "notes": [[n, label] for n, label in getattr(mod, "NOTE_MAP", ())],
-        "voices": max_voices(mod),
+        "voices": getattr(comp, "voices", None),
     }
     if name in drums:
         notes = [n for n, _ in getattr(mod, "NOTE_MAP", ())]
         inst[name]["pads"] = {str(k): audible_pads(name, k, notes) for k in sorted(patches) or [0]}
     comp.deinit()
 eff = {}
-src = audioinstruments.create("karplus", SR, channel_count=2)
+src = audioinstruments.create("electric_piano", SR, channel_count=2)
 for name in audioeffects.ALL:
     try:
         comp = audioeffects.create(name, src.output, SR)

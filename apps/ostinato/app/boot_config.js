@@ -2,7 +2,7 @@
 export default {
  "ui": {
   "packages": [
-   "vendor/wheels/pydevices-0.7.7.dev1-py3-none-any.whl",
+   "vendor/wheels/pydevices-0.7.8-py3-none-any.whl",
    "vendor/wheels/pydevices_lvgl-9.5.52-cp314-cp314-pyemscripten_2026_0_wasm32.whl"
   ],
   "files": {
@@ -35,10 +35,11 @@ export default {
  },
  "engine": {
   "packages": [
-   "vendor/wheels/pydevices-0.7.7.dev1-py3-none-any.whl",
-   "vendor/wheels/pydevices_audiodsp-0.6.8.dev4-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
-   "vendor/wheels/pydevices_audioeffects-0.4.1.dev3-py3-none-any.whl",
-   "vendor/wheels/pydevices_audioinstruments-0.4.1.dev3-py3-none-any.whl"
+   "vendor/wheels/pydevices-0.7.8-py3-none-any.whl",
+   "vendor/wheels/numpy-2.4.3-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+   "vendor/wheels/omnipython_audiodsp-0.6.13.dev1-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+   "vendor/wheels/omnipython_audioeffects-0.5.0.dev1-py3-none-any.whl",
+   "vendor/wheels/omnipython_audioinstruments-0.5.0-py3-none-any.whl"
   ],
   "files": {
    "lib/songlink/__init__.py": "songlink/__init__.py",
@@ -49,8 +50,6 @@ export default {
    "app/engine/master.py": "master.py",
    "app/engine/mastercore.py": "mastercore.py",
    "vendor/lib/midiports/__init__.py": "midiports/__init__.py",
-   "vendor/lib/midiports/usb_device.py": "midiports/usb_device.py",
-   "vendor/lib/midiports/usbif_shim.py": "midiports/usbif_shim.py",
    "vendor/lib/midiports/webmidi.py": "midiports/webmidi.py",
    "vendor/lib/adafruit_midi/__init__.py": "adafruit_midi/__init__.py",
    "vendor/lib/adafruit_midi/active_sensing.py": "adafruit_midi/active_sensing.py",
@@ -73,10 +72,11 @@ export default {
   }
  },
  "versions": {
-  "pydevices": "0.7.7.dev1",
-  "pydevices-audiodsp": "0.6.8.dev4",
+  "numpy": "2.4.3",
+  "pydevices": "0.7.8",
+  "omnipython-audiodsp": "0.6.13.dev1",
   "pydevices-lvgl": "9.5.52",
-  "pydevices-audioinstruments": "0.4.1.dev3",
-  "pydevices-audioeffects": "0.4.1.dev3"
+  "omnipython-audioinstruments": "0.5.0",
+  "omnipython-audioeffects": "0.5.0.dev1"
  }
 };

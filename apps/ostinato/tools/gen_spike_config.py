@@ -26,8 +26,8 @@ def main():
         for d, _, fs in os.walk(ROOT / "vendor" / "lib") for f in fs if f.endswith(".py"))
     engine = {
         "wheels": ["vendor/wheels/" + w[n]["file"] for n in
-                   ("pydevices-audiodsp", "pydevices-audioeffects", "pydevices-audioinstruments")],
-        "libs": libs, "voice": "minimoog", "parse": "adafruit", "target": 768,
+                   ("numpy", "omnipython-audiodsp", "omnipython-audioeffects", "omnipython-audioinstruments")],
+        "libs": libs, "voice": "mono_synth", "parse": "adafruit", "target": 768,
         "lvglWheel": "vendor/wheels/" + w["pydevices-lvgl"]["file"],
     }
     (ROOT / "spike" / "spike_config.js").write_text(

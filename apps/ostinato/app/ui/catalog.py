@@ -31,14 +31,13 @@ def pad_notes(track):
 
 # Melodic instruments by family, in the order the list shows them.
 FAMILIES = [
-    ("Analog poly", ("andromeda", "cs80", "jupiter8", "juno106", "obxa", "polysix", "prophet5")),
-    ("Virtual analog", ("jp8000", "ms2000", "nord_lead", "virus")),
-    ("Mono synths", ("arp2600", "minimoog", "ms20", "music_easel", "odyssey", "sh101", "taurus", "tb303", "wasp")),
-    ("Digital and FM", ("cz101", "d50", "dx7", "fs1r", "microwave", "ppg_wave", "prophet_vs")),
-    ("Electric pianos and keys", ("clavinet", "cp70", "pianet", "rhodes", "wurlitzer")),
-    ("Organs", ("b3", "farfisa", "vox_continental")),
-    ("Strings and choirs", ("mellotron", "solina", "vp330")),
-    ("Samplers and others", ("soundfont", "emulator2", "fairlight", "k2600", "karplus", "vl1")),
+    ("Analog poly", ("poly106", "poly5", "poly6", "poly8", "poly80", "polya6", "polyxa")),
+    ("Mono synths", ("acid303", "bass_pedals", "duo20", "duosynth", "hybrid_mono", "mono101", "mono_one", "mono_synth",
+                     "patch2600", "state_variable_mono", "west_coast_synth")),
+    ("Electric pianos and keys", ("clavichord", "electric_grand70", "electric_piano", "reed_piano", "reed_piano200a")),
+    ("Organs", ("combo_organ", "compact_organ", "tonewheel3")),
+    ("Strings and choirs", ("string_ensemble", "vocoder330")),
+    ("Samplers", ("soundfont",)),
 ]
 
 

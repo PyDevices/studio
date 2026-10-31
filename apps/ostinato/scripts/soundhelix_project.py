@@ -29,11 +29,14 @@ MAX_REPEAT = 16
 # and the arpeggio and the melody overlap. The volumes keep the loudest
 # moment of the mix under full scale, with the lead a little forward.
 PARTS = [
-    ("Drums", "drums", "tr808", 65, ["percussion"]),
-    ("Bass", "melodic", "virus", 58, ["bass", "randombass"]),
-    ("Keys", "melodic", "juno106", 60, ["accomp", "pad"]),
-    ("Lead", "melodic", "dx7", 78, ["arpeggio", "melody"]),
+    ("Drums", "drums", "rhythm808", 127, ["percussion"]),
+    ("Bass", "melodic", "mono_synth", 100, ["bass", "randombass"]),
+    ("Keys", "melodic", "poly106", 100, ["accomp", "pad"]),
+    ("Lead", "melodic", "poly8", 110, ["arpeggio", "melody"]),
 ]
+
+# Each instrument's patch: the bass is the Fat Bass, the lead the Cross Bell.
+PATCH = {"mono_synth": 1, "poly8": 4}
 
 
 def chunks(song, parts, scale, chunk_ticks):
@@ -97,6 +100,7 @@ def convert(song):
         keep, column = fit_patterns(seq, name)
         t = model.track(kind, instrument, name)
         t["volume"] = volume
+        t["patch"] = PATCH.get(instrument, 0)
         t["patterns"] = [{"bars": CHUNK_BARS, "notes": [list(n) for n in c]} for c in keep] or [model.pattern()]
         tracks.append(t)
         columns.append(column)

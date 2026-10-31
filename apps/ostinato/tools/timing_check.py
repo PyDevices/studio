@@ -12,7 +12,7 @@ cut plays live in song mode with the tap on, through these phases, each
 
   still     nothing changes
   knobs     the twelve DMK-25 knobs swept, about 60 changes a second
-  patches   minimoog, its three patches in turn every 1.5 s
+  patches   mono_synth, its three patches in turn every 1.5 s
   instr     a different instrument every 3 s
   still2    nothing changes again
 
@@ -47,7 +47,7 @@ from files_check import export
 
 SR = 48000
 HOP = 240                      # 5 ms frames for the onset curve
-INSTRUMENTS = ["tb303", "juno106", "minimoog", "dx7", "sh101", "prophet5", "jupiter8", "virus"]
+INSTRUMENTS = ["acid303", "poly106", "mono_synth", "poly8", "mono101", "poly5", "polya6", "duosynth"]
 PHASES = ["still", "knobs", "patches", "instr", "still2"]
 STILL = ("still", "still2")
 RECOVER_S = 5.0                # back at the floor within this long of the last underrun
@@ -139,7 +139,7 @@ def run(s, phase_s=10.0):
                 time.sleep(1 / 60)
             elif phase == "patches" and t >= next_change:
                 if patch_i == 0:
-                    s.send({"kind": "instrument", "index": bi, "name": "minimoog"})
+                    s.send({"kind": "instrument", "index": bi, "name": "mono_synth"})
                 else:
                     s.op({"op": "set", "path": model.track_path(tid, "patch"), "value": patch_i % 3})
                 patch_i += 1

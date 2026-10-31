@@ -171,7 +171,7 @@ def main():
                 elif a.scenario == "knob":
                     # Sweep the DMK-25's bank A knob 2 (CC 31) up, then down, while A3
                     # repeats every 250 ms. A macro reaches a note when it starts
-                    # (audiocomponents#166), so each new note carries the knob.
+                    #, so each new note carries the knob.
                     span = (a.seconds - 2) * 1000
                     events = []
                     for k in range(129):

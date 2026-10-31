@@ -35,7 +35,7 @@ from files_check import menu
 from master_check import readings
 
 
-def pad_order(instrument="tr808", patch=0):
+def pad_order(instrument="rhythm808", patch=0):
     """The kit's notes in grid order, as the app works it out."""
     info = json.loads((ROOT / "assets" / "catalog.json").read_text())["instruments"][instrument]
     audible = info.get("pads", {}).get(str(patch))
@@ -256,23 +256,23 @@ def run(s):
     # -- knobs: drag, reset; the next instrument
     s.reset()
     app.select(2)
-    kr = app.geom()["knob_rects"][1]                                 # Juno: Cutoff
+    kr = app.geom()["knob_rects"][0]                                 # Poly-106: Cutoff
     kid = app.project()["tracks"][2]["id"]
-    before = json.loads((ROOT / "assets" / "catalog.json").read_text())["instruments"]["juno106"]["patch_values"]["0"][1]
+    before = json.loads((ROOT / "assets" / "catalog.json").read_text())["instruments"]["poly106"]["patch_values"]["0"][0]
     kx, ky = centre(kr)
     s.mouse.move(kx, ky); s.mouse.down()
     for k in range(1, 11):
         s.mouse.move(kx, ky + 2 * k); time.sleep(0.02)              # down: lower
     s.mouse.up(); time.sleep(0.4)
-    dragged = app.project()["tracks"][2]["macros"].get("1")
+    dragged = app.project()["tracks"][2]["macros"].get("0")
     s.mouse.dblclick(kx, ky); time.sleep(0.4)
-    reset = app.project()["tracks"][2]["macros"].get("1")
+    reset = app.project()["tracks"][2]["macros"].get("0")
     check(dragged is not None and dragged < before and reset == before,
           "knobs: dragging Cutoff down went %d to %s; a double-click put it back (%s)" % (before, dragged, reset))
     app.click_rect(app.geom()["inst_steps"][1]); time.sleep(0.3)
     s.settle()
     inst = app.project()["tracks"][2]["instrument"]
-    check(inst == "obxa", "knobs: the next-instrument button stepped Juno-106 to %s (OB-Xa follows it)" % inst)
+    check(inst == "poly5", "knobs: the next-instrument button stepped Poly-106 to %s (Poly-5 follows it)" % inst)
 
     # -- files: Save asks once, then Ctrl+S doesn't; unsaved; Save first
     p = model.new_project()

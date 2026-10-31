@@ -44,7 +44,7 @@ def run(s, long=False):
     check("SoundHelix" in p["name"], "the first run loads the demo song (%s)" % p["name"])
     check(len(p["song"]) == 36 and p["song_mode"], "36 scenes, in song mode (%d)" % len(p["song"]))
     check(p["swing"] == 15, "SoundHelix's groove is the swing (%d)" % p["swing"])
-    check([t["instrument"] for t in p["tracks"]] == ["tr808", "virus", "juno106", "dx7"],
+    check([t["instrument"] for t in p["tracks"]] == ["rhythm808", "mono_synth", "poly106", "poly8"],
           "four tracks on their instruments")
     s.send({"kind": "key", "key": "escape"}); time.sleep(0.3)
 

@@ -5,7 +5,7 @@ synth from a MIDI keyboard, put drums on a step grid, record loops and fix
 them in a piano roll, chain patterns into a song, put effects on each track,
 and export a WAV or a MIDI file. It installs as an app and works offline.
 
-It's built from PyDevices: LVGL draws the interface, audiocomponents' 55
+It's built from PyDevices: LVGL draws the interface, audioinstruments' 33
 instruments and 44 effects make the sound, and `midiports` and
 `adafruit_midi` read the keyboard, all running in Pyodide in Web Workers.
 
@@ -37,8 +37,8 @@ released PyDevices stack:
 py -3.14 -m venv %USERPROFILE%\ostinato-venv
 %USERPROFILE%\ostinato-venv\Scripts\python -m pip install --pre --no-cache-dir ^
   --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple ^
-  pydevices pydevices-desktop pydevices-audiodsp pydevices-lvgl ^
-  pydevices-audioinstruments pydevices-audioeffects numpy
+  pydevices pydevices-desktop omnipython-audiodsp pydevices-lvgl ^
+  omnipython-audioinstruments omnipython-audioeffects numpy
 ```
 
 Then, from a checkout (after `scripts/fetch_midi.py`, which brings midiports):
