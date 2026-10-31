@@ -99,7 +99,7 @@ jobs:
 
       - name: Install audiodsp on CPython
         run: |
-          python -m pip install ./modules/audiodsp
+          python -m pip install ./modules/audiodsp numpy
 
       # The rack computes with ulab on MicroPython.
       - uses: actions/checkout@v7
