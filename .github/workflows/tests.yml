@@ -1,6 +1,11 @@
 name: Tests
 
 # Documentation-only changes can't change these results, so they don't run them.
+# Past that, the scope job reads the diff and each job runs only for the paths it
+# checks: ostinato for apps/ostinato and lib/ (its page loads studio's lib/), and
+# engines for lib/, tests/ and this workflow (which holds its pins). A push to
+# main is scoped to what that push changed. A manual run, or a push with no
+# earlier commit to compare with, runs both.
 on:
   push:
     branches: [main]
@@ -13,6 +18,13 @@ on:
       - '**.md'
       - 'docs/**'
       - '**/LICENSE'
+  workflow_dispatch:
+
+# A newer commit on a pull request replaces the run for the older one. Pushes to
+# main are never cancelled: each is checked only for its own changes.
+concurrency:
+  group: tests-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -30,9 +42,41 @@ env:
   MICROPYTHON_REF: v1.29.0
 
 jobs:
+  scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      ostinato: ${{ steps.scope.outputs.ostinato }}
+      engines: ${{ steps.scope.outputs.engines }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Which jobs this change needs
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ] || [ -z "${BASE//0/}" ] \
+              || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "Both jobs: a manual run, or no earlier commit to compare with."
+            echo "ostinato=true" >> "$GITHUB_OUTPUT"
+            echo "engines=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files=$(git diff --name-only "$BASE...$GITHUB_SHA")
+          echo "$files"
+          has() { grep -qE "$1" <<< "$files" && echo true || echo false; }
+          echo "ostinato=$(has '^(apps/ostinato/|lib/|\.github/workflows/tests\.yml$)')" >> "$GITHUB_OUTPUT"
+          echo "engines=$(has '^(lib/|tests/|\.github/workflows/tests\.yml$)')" >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
   # Ostinato's own checks: the page, the service worker and what each
   # worker loads. A few seconds once PyScript is vendored.
   ostinato:
+    needs: scope
+    if: needs.scope.outputs.ostinato == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -54,6 +98,8 @@ jobs:
   # on CPython and unix MicroPython, each with its planted faults. The
   # whole job takes under three minutes, half of it the MicroPython build.
   engines:
+    needs: scope
+    if: needs.scope.outputs.engines == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
